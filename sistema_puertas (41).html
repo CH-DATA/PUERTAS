@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Registro — Puertas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root{
+    --walnut-900:#2B1B10;
+    --walnut-700:#4A2E1F;
+    --oak-600:#6B4423;
+    --oak-500:#8B5A2B;
+    --rust-500:#B5601F;
+    --rust-600:#9A4E17;
+    --tan-300:#D8C3A5;
+    --tan-200:#E8DAC4;
+    --paper-100:#F3ECE1;
+    --paper-50:#FBF6EF;
+    --ok-600:#3D6B3D;
+    --ok-500:#4F8A4F;
+    --danger-600:#A3372B;
+    --info-600:#2B5F7A;
+    --info-500:#3B7FA0;
+    --gold-500:#C99A3B;
+    --shadow: 0 4px 14px rgba(43,27,16,0.12);
+    --shadow-lg: 0 14px 34px rgba(43,27,16,0.18);
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'Work Sans', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family: var(--font-body);
+    background: var(--paper-100);
+    color: var(--walnut-900);
+    min-height:100vh;
+  }
+  /* ---------- Login ---------- */
+  #loginScreen{
+    position:fixed; inset:0; z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(1200px 800px at 15% 10%, rgba(181,96,31,0.25), transparent 60%),
+      radial-gradient(1000px 700px at 85% 90%, rgba(139,90,43,0.30), transparent 60%),
+      linear-gradient(160deg, var(--walnut-900) 0%, var(--walnut-700) 45%, var(--oak-600) 100%);
+    overflow:hidden;
+  }
+  #loginScreen::before{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(115deg, rgba(255,255,255,0.028) 0px, rgba(255,255,255,0.028) 1px, transparent 1px, transparent 9px);
+    pointer-events:none;
+  }
+  .login-card{
+    position:relative; width:min(380px, 90vw);
+    background: linear-gradient(180deg, var(--paper-50), var(--paper-100));
+    border-radius:22px;
+    padding:40px 34px 32px;
+    box-shadow: 0 30px 70px rgba(20,10,4,0.55), 0 0 0 1px rgba(255,255,255,0.06);
+    animation: loginRise .55s cubic-bezier(.2,.9,.25,1);
+  }
+  @keyframes loginRise{ from{opacity:0; transform:translateY(18px) scale(.97);} to{opacity:1; transform:translateY(0) scale(1);} }
+  .login-emblem{
+    width:64px; height:64px; margin:0 auto 16px; border-radius:16px;
+    background: linear-gradient(150deg, var(--rust-500), var(--oak-600));
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 10px 24px rgba(181,96,31,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .login-title{
+    font-family: var(--font-display); font-weight:600; font-size:22px;
+    text-align:center; color:var(--walnut-900); margin:0 0 2px;
+    letter-spacing:.2px;
+  }
+  .login-sub{
+    text-align:center; font-size:13px; color:var(--oak-600); margin:0 0 26px;
+    letter-spacing:.3px; text-transform:uppercase; font-weight:600; opacity:.75;
+  }
+  .login-field{ margin-bottom:16px; }
+  .login-field label{
+    display:block; font-size:12px; font-weight:700; color:var(--walnut-700);
+    text-transform:uppercase; letter-spacing:.6px; margin-bottom:7px;
+  }
+  .login-field input{
+    width:100%; padding:13px 14px; border-radius:12px; border:1.5px solid var(--tan-300);
+    background: var(--paper-50); font-family:var(--font-body); font-size:15px; color:var(--walnut-900);
+    outline:none; transition: border-color .15s, box-shadow .15s;
+  }
+  .login-field input:focus{
+    border-color: var(--rust-500); box-shadow: 0 0 0 4px rgba(181,96,31,0.14);
+  }
+  .login-error{
+    color: var(--danger-600); font-size:13px; font-weight:600; text-align:center;
+    min-height:18px; margin:-4px 0 12px;
+  }
+  .login-btn{
+    width:100%; padding:14px; border:none; border-radius:12px; cursor:pointer;
+    background: linear-gradient(135deg, var(--rust-500), var(--rust-600));
+    color:#fff; font-family:var(--font-body); font-weight:700; font-size:14.5px;
+    letter-spacing:.4px; box-shadow: 0 8px 20px rgba(154,78,23,0.35);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .login-btn:hover{ transform: translateY(-1px); box-shadow: 0 12px 26px rgba(154,78,23,0.42); }
+  .login-btn:active{ transform: translateY(0); }
+  .login-users{
+    display:flex; justify-content:center; gap:8px; margin-top:22px; flex-wrap:wrap;
+  }
+  .login-chip{
+    font-size:11px; font-weight:700; color:var(--oak-600); background:var(--tan-200);
+    padding:5px 10px; border-radius:999px; letter-spacing:.3px;
+  }
+  #appShellWrap{ display:none; }
+  .user-badge{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background: rgba(251,246,239,0.1); border:1px solid rgba(251,246,239,0.18);
+    border-radius:12px; padding:9px 12px; margin-top:auto;
+  }
+  .user-badge .who{ font-size:13px; font-weight:700; color:var(--paper-50); }
+  .user-badge .who span{ display:block; font-size:10px; font-weight:600; opacity:.65; text-transform:uppercase; letter-spacing:.5px; }
+  .user-badge button{
+    background: rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:var(--paper-50);
+    font-size:11px; font-weight:700; padding:6px 9px; border-radius:8px; cursor:pointer;
+  }
+  .user-badge button:hover{ background: rgba(255,255,255,0.22); }
+
+  .app-shell{max-width:1440px; margin:0 auto; display:flex; align-items:flex-start; min-height:100vh;}
+  .main-content{flex:1; min-width:0; padding:0 0 60px;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:230px; flex-shrink:0; min-height:100vh; position:sticky; top:0;
+    background: linear-gradient(180deg, var(--walnut-700) 0%, var(--oak-600) 60%, var(--oak-500) 100%);
+    padding:26px 20px; display:flex; flex-direction:column; gap:30px;
+    box-shadow: var(--shadow);
+    border-radius: 0 18px 18px 0;
+    position:relative; overflow:hidden;
+  }
+  .sidebar::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(100deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 2px, transparent 2px, transparent 14px);
+    pointer-events:none;
+  }
+  .sidebar-brand{display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; position:relative; z-index:1;}
+  .sidebar-brand svg{width:36px; height:36px; flex-shrink:0;}
+  .sidebar-brand h1{
+    font-family: var(--font-display);
+    font-size: 16px; line-height:1.25; letter-spacing:0.3px; margin:6px 0 0;
+    font-weight:600;
+    background: linear-gradient(135deg, #FBF6EF, var(--tan-200));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sidebar-brand p{margin:2px 0 0; font-size:10px; color:var(--tan-200); letter-spacing:1.5px; text-transform:uppercase;}
+  .btn-new{
+    position:relative; z-index:1;
+    background: var(--rust-500);
+    color:#fff; border:none; padding:13px 16px; border-radius:10px;
+    font-size:14px; font-weight:600; cursor:pointer;
+    box-shadow: 0 3px 0 var(--rust-600);
+    transition: transform 0.08s ease;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; font-family: var(--font-body);
+  }
+  .btn-new:hover{ filter:brightness(1.05); }
+  .btn-new:active{ transform: translateY(2px); box-shadow: 0 1px 0 var(--rust-600); }
+
+  /* ---------- Stats ---------- */
+  .stats{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:16px;
+    padding: 22px 28px 0;
+  }
+  .stat-card{
+    position:relative;
+    background: linear-gradient(160deg, var(--paper-50), var(--paper-100));
+    border:1px solid var(--tan-300); border-radius:14px;
+    padding:18px 18px 18px 22px; box-shadow: var(--shadow);
+    overflow:hidden;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .stat-card::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:5px;
+    background: linear-gradient(180deg, var(--rust-500), var(--oak-500));
+  }
+  .stat-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .stat-card .label{font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--oak-500); font-weight:700; display:flex; align-items:center; gap:6px;}
+  .stat-card .value{font-family: var(--font-display); font-size:28px; margin-top:6px; color:var(--walnut-900);}
+  .stat-card .sub{font-size:12px; color:#7a6a58; margin-top:2px;}
+
+  .login-chip-strong{
+    background: linear-gradient(135deg, var(--rust-500), var(--oak-600)); color:#fff;
+  }
+
+  /* ---------- Check "Listo" (despacho) ---------- */
+  .listo-check{ display:flex; align-items:center; justify-content:center; }
+  .listo-check input[type=checkbox]{
+    width:20px; height:20px; accent-color: var(--info-600); cursor:pointer;
+  }
+  .listo-check input[type=checkbox]:disabled{ cursor:default; opacity:.55; }
+  .badge.listo-si{ background:#D6E6EE; color:var(--info-600); }
+  .badge.listo-no{ background:#EFE6D8; color:var(--oak-600); }
+
+  /* ---------- Transición entre hojas ---------- */
+  @keyframes hojaFadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+  .hoja.active{ animation: hojaFadeIn .28s ease; }
+
+  /* ---------- Filters ---------- */
+  .filters{
+    display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;
+    padding: 22px 28px 0;
+  }
+  .field{display:flex; flex-direction:column; gap:5px;}
+  .field label{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--oak-600);}
+  select, input, textarea{
+    font-family: inherit; font-size:13px; color:var(--walnut-900);
+    background: var(--paper-50); border:1px solid var(--tan-300); border-radius:8px;
+    padding:9px 11px; outline:none;
+  }
+  select:focus, input:focus, textarea:focus{ border-color: var(--rust-500); box-shadow:0 0 0 3px rgba(181,96,31,0.15); }
+  .filters select, .filters input{min-width:160px;}
+  .btn-clear{
+    background:transparent; border:1px solid var(--tan-300); color:var(--oak-600);
+    padding:9px 14px; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600;
+  }
+  .btn-clear:hover{ background: var(--tan-200); }
+
+  /* ---------- Table ---------- */
+  .table-wrap{
+    margin: 22px 28px 0; background: var(--paper-50); border-radius:12px;
+    border:1px solid var(--tan-300); box-shadow: var(--shadow); overflow:hidden;
+  }
+  .table-scroll{overflow-x:auto;}
+  table{border-collapse:collapse; width:100%; min-width:1500px;}
+  thead th{
+    background: var(--walnut-700); color:#FBF6EF; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.5px; padding:12px 10px; text-align:left; white-space:nowrap;
+    position:sticky; top:0;
+  }
+  thead th.group{ background: var(--oak-600); text-align:center; }
+  tbody td{
+    padding:10px; font-size:13px; border-bottom:1px solid var(--tan-200); white-space:nowrap;
+  }
+  tbody tr:nth-child(even){ background: var(--paper-100); }
+  tbody tr:hover{ background: #F0E4D3; }
+  td.wrap{white-space:normal; max-width:220px;}
+  td.num{text-align:right; font-variant-numeric: tabular-nums;}
+  .badge{
+    display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;
+  }
+  .badge.mass{ background:#E4D3B8; color:#6B4423; }
+  .badge.andina{ background:#D9C7A3; color:#4A2E1F; }
+  .badge.venecia{ background:#C9AF87; color:#2B1B10; }
+  .badge.pendiente{ background:#F3D6D0; color:var(--danger-600); }
+  .badge.entregado{ background:#D3E4D3; color:var(--ok-600); }
+  .actions{display:flex; gap:6px;}
+  .icon-btn{
+    border:none; background:transparent; cursor:pointer; padding:5px; border-radius:6px;
+    color: var(--oak-600); display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{ background: var(--tan-200); }
+  .icon-btn.danger:hover{ background:#F3D6D0; color:var(--danger-600); }
+  .empty-state{
+    padding:50px 20px; text-align:center; color:#8a7a68;
+  }
+  .empty-state svg{width:56px; height:56px; margin-bottom:10px; opacity:0.5;}
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(43,27,16,0.55); display:none;
+    align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background: var(--paper-50); border-radius:16px; width:100%; max-width:760px;
+    max-height:90vh; overflow-y:auto; box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+  .modal-header{
+    background: var(--walnut-700); color:#FBF6EF; padding:18px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-radius:16px 16px 0 0; position:sticky; top:0; z-index:2;
+  }
+  .modal-header h2{margin:0; font-family:var(--font-display); font-size:19px; font-weight:700;}
+  .modal-close{background:transparent; border:none; color:#FBF6EF; cursor:pointer; font-size:20px; line-height:1;}
+  .modal-body{padding:20px 24px 6px;}
+  .section-title{
+    font-size:11px; text-transform:uppercase; letter-spacing:1px; font-weight:700;
+    color: var(--rust-600); margin: 18px 0 10px; padding-bottom:6px; border-bottom:2px solid var(--tan-300);
+  }
+  .section-title:first-child{margin-top:0;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;}
+  .grid4{display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px;}
+  .field.full{grid-column: 1 / -1;}
+  .hint{font-size:11px; color:#8a7a68; margin-top:3px;}
+  .modal-footer{
+    padding:16px 24px 22px; display:flex; justify-content:flex-end; gap:10px;
+  }
+  .btn-secondary{
+    background:transparent; border:1px solid var(--tan-300); color:var(--oak-600);
+    padding:10px 18px; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600;
+  }
+  .btn-primary{
+    background: var(--rust-500); color:#fff; border:none; padding:10px 20px; border-radius:8px;
+    font-size:13px; font-weight:700; cursor:pointer; box-shadow: 0 3px 0 var(--rust-600);
+  }
+  .btn-primary:hover{filter:brightness(1.05);}
+  .btn-print{
+    background: var(--paper-50); color:var(--walnut-700); border:1px solid var(--oak-500);
+    padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;
+    display:flex; align-items:center; gap:8px;
+  }
+  .btn-print:hover{ background: var(--tan-200); }
+  .btn-print svg{width:16px; height:16px; flex-shrink:0;}
+  .calc-box{
+    background: var(--tan-200); border:1px dashed var(--oak-500); border-radius:8px;
+    padding:10px 12px; font-size:13px; color:var(--walnut-700); display:flex; gap:18px;
+  }
+  .calc-box b{color:var(--walnut-900);}
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background: var(--walnut-900); color:#FBF6EF; padding:12px 20px; border-radius:10px;
+    font-size:13px; box-shadow: var(--shadow); opacity:0; pointer-events:none;
+    transition: all 0.25s ease; z-index:100;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .footer-note{
+    text-align:center; font-size:11px; color:#9a8a76; margin-top:26px; padding:0 28px;
+  }
+
+  /* ---------- Nav de hojas (barra lateral) ---------- */
+  .navtabs{
+    display:flex; flex-direction:column; gap:10px; position:relative; z-index:1;
+  }
+  .navtab{
+    display:flex; align-items:center; justify-content:center; gap:9px;
+    background: var(--paper-50); border:1px solid var(--tan-300); color:var(--oak-600);
+    padding:12px 14px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;
+    box-shadow: var(--shadow); transition: all 0.15s ease;
+    width:100%; font-family: var(--font-body); text-align:center;
+  }
+  .navtab svg{width:18px; height:18px; flex-shrink:0;}
+  .navtab:hover{ background: var(--tan-200); }
+  .navtab.active{
+    background: var(--rust-500); border-color: var(--rust-500); color:#fff;
+    box-shadow: 0 3px 0 var(--rust-600);
+  }
+  .navtab-primary{
+    background: var(--rust-500); border-color: var(--rust-500); color:#fff;
+    box-shadow: 0 3px 0 var(--rust-600); font-weight:700; font-size:14px; padding:14px;
+  }
+  .navtab-primary:hover{ background: var(--rust-500); filter:brightness(1.06); }
+  .navtab-primary.active{ background: var(--walnut-700); border-color: var(--walnut-700); box-shadow: 0 3px 0 var(--walnut-900); }
+  .nav-divider{ height:1px; background: rgba(251,246,239,0.18); margin:2px 0; position:relative; z-index:1; }
+
+  /* ---------- Hojas (páginas) ---------- */
+  .hoja{ display:none; }
+  .hoja.active{ display:block; }
+
+  /* ---------- Hoja de registro (antes modal) como página completa ---------- */
+  .registro-card{
+    margin: 22px 28px 0; background: var(--paper-50); border-radius:16px;
+    border:1px solid var(--tan-300); box-shadow: var(--shadow); overflow:hidden;
+  }
+  .registro-header{
+    background: var(--walnut-700); color:#FBF6EF; padding:18px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .registro-header h2{margin:0; font-family:var(--font-display); font-size:19px; font-weight:700;}
+  .registro-body{padding:22px 24px 6px;}
+  .registro-footer{
+    padding:16px 24px 24px; display:flex; justify-content:flex-end; gap:10px;
+  }
+
+  /* ---------- Delivery ---------- */
+  .delivery-summary{
+    background: var(--tan-200); border:1px solid var(--tan-300); border-radius:10px;
+    padding:14px 16px; margin-bottom:16px; display:none;
+  }
+  .delivery-summary.show{display:block;}
+  .delivery-summary .row{display:flex; justify-content:space-between; font-size:13px; padding:3px 0;}
+  .delivery-summary .row b{color:var(--walnut-900);}
+  .check-row{
+    display:flex; align-items:center; gap:10px; background:var(--paper-100);
+    border:1px solid var(--tan-300); border-radius:10px; padding:14px 16px; margin:14px 0;
+  }
+  .check-row input[type=checkbox]{width:20px; height:20px; accent-color: var(--ok-600); cursor:pointer;}
+  .check-row label{font-size:14px; font-weight:700; color:var(--walnut-900); cursor:pointer;}
+  .photo-preview{
+    max-width:220px; max-height:220px; border-radius:10px; border:1px solid var(--tan-300);
+    margin-top:10px; display:none; box-shadow: var(--shadow);
+  }
+  .photo-preview.show{display:block;}
+  .delivery-list-item{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:12px 14px; border-bottom:1px solid var(--tan-200); font-size:13px;
+  }
+  .delivery-list-item:last-child{border-bottom:none;}
+  .delivery-list-item .info b{display:block; font-size:13px; color:var(--walnut-900);}
+  .delivery-list-item .info span{display:block; font-size:12px; color:#7a6a58; margin-top:2px;}
+  .btn-mini{
+    background: var(--rust-500); color:#fff; border:none; padding:7px 12px; border-radius:7px;
+    font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;
+  }
+  .alert-pending{
+    margin: 22px 28px 0; background:#FBEDEA; border:1px solid #E6BAB0; border-radius:12px;
+    box-shadow: var(--shadow); overflow:hidden;
+  }
+  .alert-pending .alert-head{
+    display:flex; align-items:center; gap:10px; padding:14px 18px; background:#F3D6D0;
+    color: var(--danger-600); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;
+  }
+  .alert-pending .alert-head svg{width:18px; height:18px; flex-shrink:0;}
+  .pending-row{
+    display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center;
+    padding:11px 18px; border-bottom:1px solid #EFD8D2; font-size:13px;
+  }
+  .pending-row:last-child{border-bottom:none;}
+  .pending-row b{color:var(--walnut-900);}
+  .pending-row .muted{color:#7a6a58;}
+  .pending-empty{padding:16px 18px; font-size:13px; color:#5b7a5b;}
+  .calc-ref{
+    background: var(--tan-200); border:1px dashed var(--oak-500); border-radius:8px;
+    padding:6px 10px; font-size:11.5px; color:var(--walnut-700);
+    display:inline-block; white-space:nowrap;
+  }
+  .calc-ref b{color:var(--walnut-900);}
+  .input-with-badge{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .input-with-badge input{ flex:1; min-width:90px; }
+  .input-with-badge .calc-ref{ flex-shrink:0; }
+  .calc-field{ display:flex; flex-direction:column; gap:5px; }
+  .calc-field label{
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
+    color:var(--oak-600);
+  }
+  .calc-plain{
+    background: var(--paper-50); border:1px solid var(--tan-300); border-radius:8px;
+    padding:9px 12px; font-size:15px; font-weight:700; color:var(--walnut-900);
+    min-width:90px; text-align:center;
+  }
+  .calc-highlight{
+    background: var(--tan-200); border:1.5px solid var(--oak-500); border-radius:8px;
+    padding:9px 12px; font-size:15px; font-weight:700; color:var(--walnut-900);
+    min-width:90px; text-align:center;
+  }
+  .input-highlight{
+    background: var(--tan-200) !important; border:1.5px solid var(--oak-500) !important;
+    font-weight:700;
+  }
+
+  .apertura-row{
+    display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:16px;
+  }
+  .mini-field{ display:flex; flex-direction:column; gap:5px; }
+  .mini-field label{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--oak-600);}
+  .mini-field .input-with-badge input{ width:80px; flex:none; }
+  .mini-field select{ width:100%; }
+  .mini-field-grow{ flex:1 1 220px; min-width:200px; }
+  @media (max-width:600px){
+    .apertura-row{ flex-direction:column; align-items:stretch; }
+    .mini-field .input-with-badge input{ width:100px; }
+  }
+
+  /* ---------- Gráficos del dashboard ---------- */
+  .charts-row{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px;
+    padding: 22px 28px 0; align-items:stretch;
+  }
+  .chart-card{
+    position:relative;
+    background: var(--paper-50); border:1px solid var(--tan-300); border-radius:14px;
+    padding:18px 20px; box-shadow: var(--shadow);
+    transition: box-shadow .15s ease, transform .15s ease;
+  }
+  .chart-card:hover{ box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+  .chart-card::before{
+    content:""; position:absolute; left:20px; right:20px; top:0; height:3px; border-radius:0 0 4px 4px;
+    background: linear-gradient(90deg, var(--rust-500), var(--gold-500));
+  }
+  .chart-card h3{
+    margin:0 0 14px; font-family: var(--font-display); font-size:15px; font-weight:600;
+    color:var(--walnut-900);
+  }
+  .chart-empty{font-size:13px; color:#7a6a58; padding:10px 0;}
+  .bar-chart{display:flex; flex-direction:column; gap:10px;}
+  .bar-row{display:grid; grid-template-columns:96px 1fr 46px; align-items:center; gap:10px;}
+  .bar-row .bar-label{font-size:12px; font-weight:600; color:var(--walnut-700); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .bar-row .bar-track{background:var(--tan-200); border-radius:6px; height:16px; overflow:hidden;}
+  .bar-row .bar-fill{
+    height:100%; border-radius:6px; background: linear-gradient(90deg, var(--rust-600), var(--rust-500));
+    transition: width .4s ease;
+  }
+  .bar-row .bar-value{font-size:12px; font-weight:700; color:var(--walnut-900); text-align:right;}
+  .donut-wrap{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .donut-wrap svg{flex-shrink:0;}
+  .donut-legend{display:flex; flex-direction:column; gap:8px; font-size:12px;}
+  .donut-legend .item{display:flex; align-items:center; gap:8px;}
+  .donut-legend .dot{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+  .donut-legend .name{font-weight:600; color:var(--walnut-900);}
+  .donut-legend .pct{color:#7a6a58;}
+
+  @media (max-width:980px){
+    .charts-row{grid-template-columns:1fr;}
+  }
+  .charts-row-full{grid-template-columns:1fr;}
+  .line-chart-scroll{overflow-x:auto; padding-bottom:4px;}
+  .line-chart-scroll svg{display:block;}
+  .trend-dot{cursor:pointer;}
+  .trend-dot:hover{ r:6; }
+
+  /* ---------- Exportar Excel ---------- */
+  .btn-export{
+    display:flex; align-items:center; gap:10px;
+    background: var(--ok-600); color:#fff; border:none;
+    padding:13px 22px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer;
+    box-shadow: 0 3px 0 #2c522c; transition: transform 0.08s ease, filter 0.15s ease;
+    font-family: var(--font-body);
+  }
+  .btn-export:hover{ filter:brightness(1.06); }
+  .btn-export:active{ transform: translateY(2px); box-shadow: 0 1px 0 #2c522c; }
+  .btn-export svg{width:19px; height:19px; flex-shrink:0;}
+  .btn-export-inline{ padding:9px 16px; font-size:13px; gap:8px; }
+  .btn-export-inline svg{width:16px; height:16px;}
+
+  @media (max-width:760px){
+    .stats{grid-template-columns:1fr 1fr;}
+    .grid2, .grid3, .grid4{grid-template-columns:1fr 1fr;}
+    .app-shell{flex-direction:column;}
+    .sidebar{
+      width:100%; min-height:auto; position:static; border-radius:0 0 18px 18px;
+      flex-direction:row; align-items:center; gap:16px; padding:16px 18px;
+    }
+    .sidebar-brand{flex-direction:row; text-align:left; gap:10px;}
+    .sidebar-brand h1{font-size:14px; margin:0;}
+    .sidebar-brand p{display:none;}
+    .navtabs{flex-direction:row; flex:1; flex-wrap:wrap;}
+    .navtab, .navtab-primary{width:auto; flex:1; min-width:110px;}
+    .nav-divider{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-emblem">
+      <svg width="30" height="30" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="4" width="32" height="40" rx="2" fill="#FBF6EF" fill-opacity="0.9"/>
+        <line x1="8" y1="12" x2="40" y2="12" stroke="#4A2E1F" stroke-width="1.4" stroke-opacity="0.5"/>
+        <line x1="8" y1="36" x2="40" y2="36" stroke="#4A2E1F" stroke-width="1.4" stroke-opacity="0.5"/>
+        <circle cx="34" cy="24" r="2" fill="#B5601F"/>
+      </svg>
+    </div>
+    <h2 class="login-title">Sistema de Puertas</h2>
+    <p class="login-sub">Acceso restringido</p>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="login-field">
+        <label for="loginUser">Usuario</label>
+        <input type="text" id="loginUser" placeholder="Ej: ANGEL" autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label for="loginPass">Contraseña</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <button type="submit" class="login-btn">Ingresar</button>
+    </form>
+
+    <div class="login-users">
+      <span class="login-chip">Angel</span>
+      <span class="login-chip">Liz</span>
+      <span class="login-chip">Lesly</span>
+      <span class="login-chip">Despacho</span>
+      <span class="login-chip login-chip-strong">Encargado</span>
+      <span class="login-chip login-chip-strong">Administrador</span>
+    </div>
+  </div>
+</div>
+
+<div id="appShellWrap">
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="4" width="32" height="40" rx="2" fill="#FBF6EF" fill-opacity="0.15" stroke="#FBF6EF" stroke-width="2"/>
+        <line x1="8" y1="12" x2="40" y2="12" stroke="#FBF6EF" stroke-width="1.4" stroke-opacity="0.6"/>
+        <line x1="8" y1="36" x2="40" y2="36" stroke="#FBF6EF" stroke-width="1.4" stroke-opacity="0.6"/>
+        <circle cx="34" cy="24" r="1.8" fill="#FBF6EF"/>
+      </svg>
+      <div>
+        <h1>Sistema de Registro de Puertas</h1>
+        <p>Ventas &amp; Pedidos</p>
+      </div>
+    </div>
+
+    <div class="navtabs">
+      <button class="navtab navtab-primary" id="navRegistro" data-view="registro">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        Nuevo registro
+      </button>
+      <div class="nav-divider"></div>
+      <button class="navtab" id="navDashboard" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="14" y="12" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="3" y="16" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="2"/></svg>
+        Dashboard
+      </button>
+    </div>
+
+    <div class="user-badge">
+      <div class="who"><span>Conectado</span><span id="currentUserLabel" style="display:block;font-size:13px;opacity:1;">—</span></div>
+      <button id="btnLogout" type="button">Salir</button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+  <!-- ===================== HOJA: DASHBOARD ===================== -->
+  <div class="hoja" id="hojaDashboard">
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">📦 Registros totales</div>
+      <div class="value" id="statTotal">0</div>
+      <div class="sub">pedidos guardados</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">⏳ Pendientes de entrega</div>
+      <div class="value" id="statPendientes" style="color:var(--danger-600);">0</div>
+      <div class="sub">puertas por entregar</div>
+    </div>
+    <div class="stat-card" id="statListoWrap" style="display:none;">
+      <div class="label">✅ Listas para despacho</div>
+      <div class="value" id="statListo" style="color:var(--info-600);">0</div>
+      <div class="sub">marcadas como listo</div>
+    </div>
+  </div>
+
+  <div id="adminVendorSummary" style="display:none;">
+    <div class="section-title" style="margin:22px 0 12px;">Resumen por vendedor</div>
+    <div class="stats" id="adminVendorCards"></div>
+  </div>
+
+  <div id="adminInsights" style="display:none;">
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>🏆 Top vendedores</h3>
+        <div id="chartVendedor"></div>
+      </div>
+      <div class="chart-card">
+        <h3>📅 Avance diario por vendedor</h3>
+        <div id="dailyVendorProgress"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-row charts-row-full">
+    <div class="chart-card">
+      <h3>Historial de ventas por día</h3>
+      <div id="chartFecha"></div>
+    </div>
+  </div>
+
+  <div class="alert-pending" id="alertPending">
+    <div class="alert-head">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="alertPendingTitle">Puertas pendientes de entrega</span>
+    </div>
+    <div id="pendingDetailList"></div>
+  </div>
+
+  <div class="filters">
+    <div class="field" id="filtroVendedorWrap">
+      <label>Vendedor</label>
+      <select id="fVendedor">
+        <option value="">Todos</option>
+        <option>Angel</option><option>Lesly</option><option>Liz</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Página</label>
+      <select id="fPagina">
+        <option value="">Todas</option>
+        <option>Mass Puertas</option><option>Puertas Andina</option><option>Venecia Puertas</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Buscar (cliente, código, distrito)</label>
+      <input type="text" id="fBuscar" placeholder="Ej. Juan Pérez, PP-0001, San Isidro...">
+    </div>
+    <button class="btn-clear" id="btnClearFilters">Limpiar filtros</button>
+    <button class="btn-export btn-export-inline" id="btnExportExcel">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Descargar Excel completo
+    </button>
+    <button class="btn-export btn-export-inline" id="btnExportExcelTaller">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Descargar Excel para taller
+    </button>
+    <button class="btn-export btn-export-inline" id="btnExportExcelDespacho" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Descargar Excel
+    </button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Fecha</th>
+            <th rowspan="2">Código</th>
+            <th rowspan="2">Vendedor</th>
+            <th rowspan="2">Página</th>
+            <th rowspan="2">Cliente</th>
+            <th rowspan="2">Dirección</th>
+            <th rowspan="2">Distrito</th>
+            <th rowspan="2">Contacto</th>
+            <th rowspan="2">Estado</th>
+            <th rowspan="2">Listo</th>
+            <th rowspan="2">Precio</th>
+            <th colspan="4" class="group">Vano (cm)</th>
+            <th colspan="2" class="group">Hoja (mm)</th>
+            <th rowspan="2">Modelo</th>
+            <th rowspan="2">Acabado</th>
+            <th rowspan="2">Perforación</th>
+            <th rowspan="2">Detalle superior</th>
+            <th rowspan="2">Observaciones</th>
+            <th rowspan="2">Acciones</th>
+          </tr>
+          <tr>
+            <th class="group">Ancho</th>
+            <th class="group">Medida (mm)</th>
+            <th class="group">Alto</th>
+            <th class="group">Medida (mm)</th>
+            <th class="group">Ancho</th>
+            <th class="group">Alto</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="4" width="32" height="40" rx="2" stroke="#8a7a68" stroke-width="2"/><line x1="8" y1="12" x2="40" y2="12" stroke="#8a7a68" stroke-width="1.4"/><circle cx="34" cy="24" r="1.8" fill="#8a7a68"/></svg>
+      <div>Aún no hay registros. Crea el primero con "Nuevo registro".</div>
+    </div>
+  </div>
+
+  <div class="footer-note">Los datos se guardan automáticamente y son compartidos entre todas las personas que usan este sistema.</div>
+
+  </div>
+  <!-- ===================== FIN HOJA: DASHBOARD ===================== -->
+
+  <!-- ===================== HOJA: NUEVO REGISTRO ===================== -->
+  <div class="hoja" id="hojaRegistro">
+  <div class="registro-card">
+    <div class="registro-header">
+      <h2 id="modalTitle">Nuevo registro</h2>
+      <button class="modal-close" id="modalClose" title="Volver al dashboard">✕</button>
+    </div>
+    <div class="registro-body">
+      <div class="section-title">🔍 Buscar cliente existente</div>
+      <div class="grid2" style="margin-bottom:18px;">
+        <div class="field full">
+          <label>DNI o nombre del cliente</label>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="iBuscarCliente" placeholder="Escribe el DNI o el nombre del cliente..." list="clienteSearchList" autocomplete="off" style="flex:1; min-width:200px;">
+            <button type="button" class="btn-secondary" id="btnBuscarCliente">Buscar y llenar datos</button>
+          </div>
+          <datalist id="clienteSearchList"></datalist>
+          <div class="hint">Si el cliente ya tiene pedidos anteriores, se autocompletan teléfono, distrito y dirección.</div>
+        </div>
+      </div>
+
+      <div class="section-title">Datos generales</div>
+      <div class="grid3">
+        <div class="field" id="vendedorFieldWrap">
+          <label>Vendedor</label>
+          <select id="iVendedor">
+            <option value="">Selecciona...</option>
+            <option>Angel</option><option>Lesly</option><option>Liz</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="iFecha">
+        </div>
+        <div class="field">
+          <label>Código</label>
+          <input type="text" id="iCodigo" placeholder="PP-0001" readonly>
+        </div>
+        <div class="field">
+          <label>Página</label>
+          <select id="iPagina">
+            <option value="">Selecciona...</option>
+            <option>Mass Puertas</option><option>Puertas Andina</option><option>Venecia Puertas</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Precio (S/)</label>
+          <input type="number" id="iPrecio" placeholder="0.00" step="0.01">
+        </div>
+        <div class="field">
+          <label>Contacto</label>
+          <input type="text" id="iContacto" placeholder="999 999 999">
+        </div>
+      </div>
+
+      <div class="section-title">Cliente y ubicación</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Cliente</label>
+          <input type="text" id="iCliente" placeholder="Nombre del cliente">
+        </div>
+        <div class="field">
+          <label>DNI</label>
+          <input type="text" id="iDni" placeholder="12345678" maxlength="15" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Distrito</label>
+          <input type="text" id="iDistrito" placeholder="Distrito">
+        </div>
+        <div class="field full">
+          <label>Dirección</label>
+          <input type="text" id="iDireccion" placeholder="Av. / Calle, número, referencia">
+        </div>
+      </div>
+
+      <div class="section-title">Vano y Hoja</div>
+      <div class="apertura-row">
+        <div class="mini-field">
+          <label>Vano — Ancho (cm)</label>
+          <input type="number" id="iVanoAncho" placeholder="0" step="0.1">
+        </div>
+        <div class="mini-field calc-field">
+          <label>Medida × 10 (mm)</label>
+          <div class="calc-plain" id="vanoCalcRefAncho">0 mm</div>
+        </div>
+        <div class="mini-field mini-field-grow">
+          <label>Tipo de apertura</label>
+          <select id="iTipoApertura">
+            <option value="">Selecciona...</option>
+            <option value="Batiente">Batiente (Ancho Vano − 51 mm)</option>
+            <option value="Vaivén">Vaivén (Ancho Vano − 78 mm)</option>
+            <option value="Especial">Especial (Ancho Vano − 71 mm)</option>
+            <option value="Corrediza">Corrediza (Ancho Vano + 30 mm)</option>
+          </select>
+        </div>
+        <div class="mini-field">
+          <label>Hoja — Ancho (mm)</label>
+          <input type="number" id="iHojaAncho" class="input-highlight" placeholder="0" step="0.1">
+        </div>
+      </div>
+      <div class="apertura-row">
+        <div class="mini-field">
+          <label>Vano — Alto (cm)</label>
+          <input type="number" id="iVanoAlto" placeholder="0" step="0.1">
+        </div>
+        <div class="mini-field calc-field">
+          <label>Medida × 10 (mm)</label>
+          <div class="calc-plain" id="vanoCalcRefAlto">0 mm</div>
+        </div>
+        <div class="mini-field mini-field-grow">
+          <label>Tipo de apertura</label>
+          <select id="iTipoAperturaAlto">
+            <option value="">Selecciona...</option>
+            <option value="Tragaluz">Tragaluz (fija: 2070 mm)</option>
+            <option value="Puerta entera">Puerta entera (Alto Vano − 33 mm)</option>
+          </select>
+        </div>
+        <div class="mini-field">
+          <label>Hoja — Alto (mm)</label>
+          <input type="number" id="iHojaAlto" class="input-highlight" placeholder="0" step="0.1">
+        </div>
+      </div>
+
+      <div class="section-title">Detalles de la puerta</div>
+      <div class="grid3">
+        <div class="field">
+          <label>Modelo</label>
+          <input type="text" id="iModelo" placeholder="Ej. Modelo Clásica">
+        </div>
+        <div class="field">
+          <label>Acabado</label>
+          <input type="text" id="iAcabado" placeholder="Ej. Melamine Nogal">
+        </div>
+        <div class="field">
+          <label>Perforación</label>
+          <input type="text" id="iPerforacion" placeholder="Ej. Sin perforación">
+        </div>
+        <div class="field full">
+          <label>Detalle superior de puerta</label>
+          <input type="text" id="iDetalleSuperior" placeholder="Ej. Moldura recta">
+        </div>
+        <div class="field full">
+          <label>Observaciones</label>
+          <textarea id="iObservaciones" rows="3" placeholder="Notas adicionales..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="registro-footer">
+      <button class="btn-secondary" id="btnCancel">Cancelar</button>
+      <button class="btn-print" id="btnPrint">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="6" y="14" width="12" height="7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        Imprimir
+      </button>
+      <button class="btn-primary" id="btnSave">Guardar registro</button>
+    </div>
+  </div>
+  </div>
+  <!-- ===================== FIN HOJA: NUEVO REGISTRO ===================== -->
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+const STORAGE_KEY = "registros_puertas";
+let registros = [];
+let editingId = null;
+let currentUser = null;
+
+const $ = (id) => document.getElementById(id);
+
+function isAdmin(){ return currentUser === "ADMINISTRADOR" || currentUser === "ENCARGADO"; }
+function isDespacho(){ return currentUser === "DESPACHO"; }
+// Roles con visión total de los registros (no solo los propios): admin, encargado y despacho.
+function veTodosLosRegistros(){ return isAdmin() || isDespacho(); }
+// Roles que pueden marcar/desmarcar el check de "Listo para despacho".
+function puedeEditarListo(){ return isAdmin() || isDespacho(); }
+function nombreVendedorActual(){
+  if(!currentUser || veTodosLosRegistros()) return "";
+  return currentUser.charAt(0) + currentUser.slice(1).toLowerCase();
+}
+function misRegistros(){
+  if(veTodosLosRegistros() || !currentUser) return registros;
+  const nombre = nombreVendedorActual();
+  return registros.filter(r => (r.vendedor||"").trim().toLowerCase() === nombre.toLowerCase());
+}
+
+function fmtMoney(n){
+  return "S/ " + (Number(n)||0).toLocaleString("es-PE", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtFecha(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+function badgeClass(pagina){
+  if(pagina === "Mass Puertas") return "mass";
+  if(pagina === "Puertas Andina") return "andina";
+  if(pagina === "Venecia Puertas") return "venecia";
+  return "mass";
+}
+function showToast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=> t.classList.remove("show"), 2200);
+}
+
+// Genera el siguiente código incrementando en 1 la parte numérica final.
+// Ej: "P0001" -> "P0002". Si no tiene número al final, agrega "-2".
+function incrementarCodigo(codigo){
+  const match = codigo.match(/^(.*?)(\d+)(\D*)$/);
+  if(!match) return codigo + "-2";
+  const [, prefijo, numero, sufijo] = match;
+  const siguiente = (parseInt(numero, 10) + 1).toString().padStart(numero.length, "0");
+  return prefijo + siguiente + sufijo;
+}
+
+// Devuelve un código que no esté en uso por NINGÚN usuario (registros compartidos).
+// Si el código deseado ya existe, lo va incrementando hasta encontrar uno libre.
+function codigoDisponible(codigoDeseado, excludeId){
+  if(!codigoDeseado) return codigoDeseado;
+  const existe = (c) => registros.some(r =>
+    r.id !== excludeId && (r.codigo||"").trim().toLowerCase() === c.trim().toLowerCase()
+  );
+  let candidato = codigoDeseado;
+  let intentos = 0;
+  while(existe(candidato) && intentos < 1000){
+    candidato = incrementarCodigo(candidato);
+    intentos++;
+  }
+  return candidato;
+}
+
+async function loadData(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    registros = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    registros = [];
+  }
+  render();
+}
+
+async function saveData(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(registros), true);
+  }catch(e){
+    showToast("⚠ No se pudo guardar. Intenta de nuevo.");
+  }
+}
+
+function showView(view){
+  // view: "dashboard" | "registro"
+  $("hojaDashboard").classList.toggle("active", view === "dashboard");
+  $("hojaRegistro").classList.toggle("active", view === "registro");
+  $("navDashboard").classList.toggle("active", view === "dashboard");
+  $("navRegistro").classList.toggle("active", view === "registro");
+  if(view === "dashboard") editingId = null;
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+// ---------- Buscar cliente existente (autocompletar teléfono, distrito, dirección) ----------
+function populateClienteSearchList(){
+  const dl = $("clienteSearchList");
+  if(!dl) return;
+  const vistos = new Set();
+  const opciones = [];
+  registros.forEach(r=>{
+    if(!r.cliente && !r.dni) return;
+    const label = r.dni ? `${r.dni} - ${r.cliente||""}` : (r.cliente||"");
+    const key = label.toLowerCase();
+    if(!vistos.has(key)){
+      vistos.add(key);
+      opciones.push(label);
+    }
+  });
+  dl.innerHTML = opciones.map(o => `<option value="${o.replace(/"/g,'')}"></option>`).join("");
+}
+
+function buscarClienteExistente(){
+  const qRaw = $("iBuscarCliente").value.trim();
+  const q = qRaw.toLowerCase();
+  if(!q){ showToast("Escribe un DNI o nombre para buscar."); return; }
+
+  // Coincidencia exacta con el formato "DNI - Nombre" (viene del datalist)
+  let rec = registros.find(r => {
+    const label = (r.dni ? `${r.dni} - ${r.cliente||""}` : (r.cliente||"")).toLowerCase();
+    return label === q;
+  });
+
+  // Si no hay coincidencia exacta, busca por DNI exacto o nombre que contenga el texto
+  if(!rec){
+    const candidatos = registros.filter(r =>
+      (r.dni||"").toLowerCase() === q || (r.cliente||"").toLowerCase().includes(q)
+    );
+    rec = candidatos[0]; // el más reciente (los registros nuevos van primero)
+  }
+
+  if(!rec){
+    showToast("No se encontró ningún cliente con ese dato.");
+    return;
+  }
+
+  $("iCliente").value = rec.cliente || "";
+  $("iDni").value = rec.dni || "";
+  $("iDistrito").value = rec.distrito || "";
+  $("iDireccion").value = rec.direccion || "";
+  $("iContacto").value = rec.contacto || "";
+  showToast(`Datos de ${rec.cliente || rec.dni} cargados ✓`);
+}
+
+$("btnBuscarCliente").addEventListener("click", buscarClienteExistente);
+$("iBuscarCliente").addEventListener("change", buscarClienteExistente);
+// ===================== FIN BUSCAR CLIENTE EXISTENTE =====================
+
+// Genera el siguiente código correlativo (PP-0001, PP-0002, ...) según el máximo ya usado.
+function generarSiguienteCodigo(){
+  const PREFIJO = "PP-";
+  let maxNum = 0;
+  let padLen = 4;
+  registros.forEach(r=>{
+    const m = (r.codigo||"").trim().match(/^PP-(\d+)$/i);
+    if(m){
+      const num = parseInt(m[1], 10);
+      if(num > maxNum){ maxNum = num; padLen = m[1].length; }
+    }
+  });
+  const siguiente = (maxNum + 1).toString().padStart(padLen, "0");
+  return PREFIJO + siguiente;
+}
+
+async function openModal(record){
+  editingId = record ? record.id : null;
+  $("modalTitle").textContent = record ? "Editar registro" : "Nuevo registro";
+  $("iBuscarCliente").value = "";
+
+  if(!record){
+    // Refresca los registros compartidos (de todos los usuarios) para que el
+    // código automático no choque con uno generado por otra persona.
+    try{
+      const res = await window.storage.get(STORAGE_KEY, true);
+      if(res && res.value) registros = JSON.parse(res.value);
+    }catch(e){ /* si falla, se sigue con lo que hay en memoria */ }
+  }
+  populateClienteSearchList();
+
+  if(isAdmin()){
+    $("vendedorFieldWrap").style.display = "";
+    $("iVendedor").value = record?.vendedor || "";
+  } else {
+    $("vendedorFieldWrap").style.display = "none";
+    $("iVendedor").value = record?.vendedor || nombreVendedorActual();
+  }
+  $("iFecha").value = record?.fecha || new Date().toISOString().slice(0,10);
+  $("iCodigo").value = record?.codigo || generarSiguienteCodigo();
+  $("iPagina").value = record?.pagina || "";
+  $("iPrecio").value = record?.precio ?? "";
+  $("iContacto").value = record?.contacto || "";
+  $("iCliente").value = record?.cliente || "";
+  $("iDni").value = record?.dni || "";
+  $("iDistrito").value = record?.distrito || "";
+  $("iDireccion").value = record?.direccion || "";
+  $("iVanoAncho").value = record?.vanoAncho ?? "";
+  $("iVanoAlto").value = record?.vanoAlto ?? "";
+  $("iTipoApertura").value = record?.tipoApertura || "";
+  $("iHojaAncho").value = record?.hojaAncho ?? "";
+  $("iTipoAperturaAlto").value = record?.tipoAperturaAlto || "";
+  $("iHojaAlto").value = record?.hojaAlto ?? "";
+  $("iModelo").value = record?.modelo || "";
+  $("iAcabado").value = record?.acabado || "";
+  $("iPerforacion").value = record?.perforacion || "";
+  $("iDetalleSuperior").value = record?.detalleSuperior || "";
+  $("iObservaciones").value = record?.observaciones || "";
+  updateCalc();
+  showView("registro");
+}
+function closeModal(){
+  showView("dashboard");
+}
+// Vano y Hoja: el Vano solo muestra una referencia informativa (Vano x 10).
+// La fórmula de Tipo de apertura afecta la Hoja — Ancho (a partir del Vano — Ancho).
+// La Hoja — Alto: "Tragaluz" la fija en 2070 mm; "Puerta entera" resta 33 mm al Vano Alto (mm); si no, es manual.
+const DELTAS_APERTURA = { "Batiente": -51, "Vaivén": -78, "Especial": -71, "Corrediza": 30 };
+const FIJOS_APERTURA_ALTO = { "Tragaluz": 2070 };
+const DELTAS_APERTURA_ALTO = { "Puerta entera": -33 };
+
+function updateCalc(){
+  const ancho = parseFloat($("iVanoAncho").value) || 0;
+  const alto = parseFloat($("iVanoAlto").value) || 0;
+  const autoAncho = ancho*10;
+  const autoAlto = alto*10;
+  $("vanoCalcRefAncho").textContent = `${autoAncho||0} mm`;
+  $("vanoCalcRefAlto").textContent = `${autoAlto||0} mm`;
+}
+
+function autoCalcHoja(){
+  const tipo = $("iTipoApertura").value;
+  updateCalc();
+  if(!tipo || DELTAS_APERTURA[tipo] === undefined) return;
+  const ancho = parseFloat($("iVanoAncho").value) || 0;
+  const delta = DELTAS_APERTURA[tipo];
+  $("iHojaAncho").value = (ancho*10 + delta).toFixed(1);
+}
+
+function autoCalcHojaAlto(){
+  const tipoAlto = $("iTipoAperturaAlto").value;
+  updateCalc();
+  if(tipoAlto && FIJOS_APERTURA_ALTO[tipoAlto] !== undefined){
+    $("iHojaAlto").value = FIJOS_APERTURA_ALTO[tipoAlto].toFixed(1);
+  } else if(tipoAlto && DELTAS_APERTURA_ALTO[tipoAlto] !== undefined){
+    const alto = parseFloat($("iVanoAlto").value) || 0;
+    $("iHojaAlto").value = (alto*10 + DELTAS_APERTURA_ALTO[tipoAlto]).toFixed(1);
+  }
+}
+$("iTipoApertura").addEventListener("change", autoCalcHoja);
+$("iTipoAperturaAlto").addEventListener("change", autoCalcHojaAlto);
+$("iVanoAncho").addEventListener("input", autoCalcHoja);
+$("iVanoAlto").addEventListener("input", autoCalcHojaAlto);
+
+async function saveRecord(){
+  const vendedor = isAdmin() ? $("iVendedor").value : nombreVendedorActual();
+  const pagina = $("iPagina").value;
+  if(!vendedor){ showToast("Selecciona un vendedor."); return; }
+  if(!pagina){ showToast("Selecciona una página."); return; }
+  const vanoAncho = parseFloat($("iVanoAncho").value) || 0;
+  const vanoAlto = parseFloat($("iVanoAlto").value) || 0;
+  const hojaAncho = parseFloat($("iHojaAncho").value) || 0;
+  const hojaAlto = parseFloat($("iHojaAlto").value) || 0;
+
+  // Refresca los registros compartidos (de todos los usuarios) antes de
+  // validar duplicados de código, para detectar códigos creados por otros.
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value) registros = JSON.parse(res.value);
+  }catch(e){ /* si falla, se sigue con los registros ya cargados en memoria */ }
+
+  let codigoFinal = $("iCodigo").value.trim();
+  if(codigoFinal){
+    const ajustado = codigoDisponible(codigoFinal, editingId);
+    if(ajustado !== codigoFinal){
+      showToast(`El código ${codigoFinal} ya existía (otro usuario). Se asignó ${ajustado}.`);
+      codigoFinal = ajustado;
+      $("iCodigo").value = codigoFinal;
+    }
+  }
+
+  const record = {
+    id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2,7)),
+    vendedor,
+    fecha: $("iFecha").value,
+    codigo: codigoFinal,
+    pagina,
+    precio: parseFloat($("iPrecio").value) || 0,
+    contacto: $("iContacto").value.trim(),
+    cliente: $("iCliente").value.trim(),
+    dni: $("iDni").value.trim(),
+    distrito: $("iDistrito").value.trim(),
+    direccion: $("iDireccion").value.trim(),
+    vanoAncho, vanoAlto,
+    tipoApertura: $("iTipoApertura").value,
+    tipoAperturaAlto: $("iTipoAperturaAlto").value,
+    hojaAncho, hojaAlto,
+    modelo: $("iModelo").value.trim(),
+    acabado: $("iAcabado").value.trim(),
+    perforacion: $("iPerforacion").value.trim(),
+    detalleSuperior: $("iDetalleSuperior").value.trim(),
+    observaciones: $("iObservaciones").value.trim(),
+  };
+
+  if(editingId){
+    const prev = registros.find(r => r.id === editingId);
+    // Conserva el estado de entrega y de "listo para despacho" al editar otros datos del registro.
+    record.entregado = prev?.entregado || false;
+    record.fechaEntrega = prev?.fechaEntrega || null;
+    record.fotoEntrega = prev?.fotoEntrega || null;
+    record.listo = prev?.listo || false;
+    record.fechaListo = prev?.fechaListo || null;
+    const idx = registros.findIndex(r => r.id === editingId);
+    if(idx > -1) registros[idx] = record;
+  } else {
+    record.entregado = false;
+    record.fechaEntrega = null;
+    record.fotoEntrega = null;
+    record.listo = false;
+    record.fechaListo = null;
+    registros.unshift(record);
+  }
+  await saveData();
+  render();
+  showToast("Se guardó correctamente ✓");
+  // Vuelve el formulario a cero, listo para registrar el siguiente pedido.
+  openModal(null);
+}
+
+// ===================== IMPRIMIR REGISTRO =====================
+function printRegistro(){
+  // Si se está editando un registro ya guardado, imprime esos datos guardados;
+  // si es un registro nuevo, imprime lo que hay actualmente en el formulario.
+  let r = editingId ? registros.find(reg => reg.id === editingId) : null;
+  if(!r){
+    r = {
+      vendedor: isAdmin() ? $("iVendedor").value : nombreVendedorActual(),
+      fecha: $("iFecha").value,
+      codigo: $("iCodigo").value.trim(),
+      pagina: $("iPagina").value,
+      precio: parseFloat($("iPrecio").value) || 0,
+      contacto: $("iContacto").value.trim(),
+      cliente: $("iCliente").value.trim(),
+      dni: $("iDni").value.trim(),
+      distrito: $("iDistrito").value.trim(),
+      direccion: $("iDireccion").value.trim(),
+      vanoAncho: parseFloat($("iVanoAncho").value) || 0,
+      vanoAlto: parseFloat($("iVanoAlto").value) || 0,
+      tipoApertura: $("iTipoApertura").value,
+      tipoAperturaAlto: $("iTipoAperturaAlto").value,
+      hojaAncho: parseFloat($("iHojaAncho").value) || 0,
+      hojaAlto: parseFloat($("iHojaAlto").value) || 0,
+      modelo: $("iModelo").value.trim(),
+      acabado: $("iAcabado").value.trim(),
+      perforacion: $("iPerforacion").value.trim(),
+      detalleSuperior: $("iDetalleSuperior").value.trim(),
+      observaciones: $("iObservaciones").value.trim(),
+      entregado: false,
+    };
+  }
+
+  if(!r.vendedor && !r.cliente && !r.codigo){
+    showToast("No hay datos en el formulario para imprimir.");
+    return;
+  }
+
+  const fila = (label, value) => `
+    <div class="p-row">
+      <div class="p-label">${label}</div>
+      <div class="p-value">${(value === "" || value === null || value === undefined) ? "—" : value}</div>
+    </div>`;
+
+  const html = `
+  <!DOCTYPE html>
+  <html lang="es">
+  <head>
+  <meta charset="UTF-8">
+  <title>Registro ${r.codigo || ""} — ${r.cliente || ""}</title>
+  <style>
+    body{ font-family: Georgia, 'Times New Roman', serif; color:#2B1B10; padding:36px; max-width:760px; margin:0 auto; }
+    h1{ font-size:20px; margin:0 0 2px; }
+    .sub{ font-size:12px; color:#6B4423; text-transform:uppercase; letter-spacing:1px; margin-bottom:22px; }
+    h2{ font-size:14px; text-transform:uppercase; letter-spacing:0.5px; color:#8B5A2B; border-bottom:1px solid #D8C3A5; padding-bottom:4px; margin:22px 0 10px; }
+    .p-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 24px; }
+    .p-row{ display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px dotted #D8C3A5; font-size:13px; }
+    .p-label{ color:#6B4423; font-weight:bold; }
+    .p-value{ text-align:right; }
+    .p-full{ grid-column: 1 / -1; }
+    .p-obs{ font-size:13px; padding:8px 0; white-space:pre-wrap; }
+    .p-status{ display:inline-block; margin-top:4px; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; }
+    .p-status.pend{ background:#F3D6D0; color:#A3372B; }
+    .p-status.entr{ background:#D3E4D3; color:#3D6B3D; }
+    .p-foot{ margin-top:30px; font-size:10px; color:#9a8a76; text-align:center; }
+    @media print{ body{ padding:14px; } }
+  </style>
+  </head>
+  <body>
+    <h1>Sistema de Registro de Puertas</h1>
+    <div class="sub">Ficha de registro${r.codigo ? " — " + r.codigo : ""}</div>
+
+    <h2>Datos generales</h2>
+    <div class="p-grid">
+      ${fila("Fecha", fmtFecha(r.fecha))}
+      ${fila("Código", r.codigo)}
+      ${fila("Vendedor", r.vendedor)}
+      ${fila("Página", r.pagina)}
+      ${fila("Precio", fmtMoney(r.precio))}
+      ${fila("Estado", "")}
+    </div>
+    <div style="text-align:right; margin-top:-8px;">
+      <span class="p-status ${r.entregado ? "entr" : "pend"}">${r.entregado ? "ENTREGADO" : "PENDIENTE"}</span>
+    </div>
+
+    <h2>Cliente y ubicación</h2>
+    <div class="p-grid">
+      ${fila("Cliente", r.cliente)}
+      ${fila("DNI", r.dni)}
+      ${fila("Contacto", r.contacto)}
+      ${fila("Distrito", r.distrito)}
+      <div class="p-row p-full"><div class="p-label">Dirección</div><div class="p-value">${r.direccion || "—"}</div></div>
+    </div>
+
+    <h2>Medidas</h2>
+    <div class="p-grid">
+      ${fila("Vano — Ancho", r.vanoAncho ? r.vanoAncho + " cm" : "—")}
+      ${fila("Vano — Alto", r.vanoAlto ? r.vanoAlto + " cm" : "—")}
+      ${fila("Tipo de apertura (Ancho)", r.tipoApertura || "—")}
+      ${fila("Tipo de apertura (Alto)", r.tipoAperturaAlto || "—")}
+      ${fila("Hoja — Ancho", r.hojaAncho ? r.hojaAncho + " mm" : "—")}
+      ${fila("Hoja — Alto", r.hojaAlto ? r.hojaAlto + " mm" : "—")}
+    </div>
+
+    <h2>Detalles de la puerta</h2>
+    <div class="p-grid">
+      ${fila("Modelo", r.modelo)}
+      ${fila("Acabado", r.acabado)}
+      ${fila("Perforación", r.perforacion)}
+      ${fila("Detalle superior", r.detalleSuperior)}
+    </div>
+    ${r.observaciones ? `<h2>Observaciones</h2><div class="p-obs">${r.observaciones}</div>` : ""}
+
+    <div class="p-foot">Impreso el ${new Date().toLocaleString("es-PE")}</div>
+    <script>window.onload = () => { window.print(); };<\/script>
+  </body>
+  </html>`;
+
+  const win = window.open("", "_blank");
+  if(!win){
+    showToast("El navegador bloqueó la ventana de impresión. Permite ventanas emergentes.");
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+// ===================== FIN IMPRIMIR REGISTRO =====================
+
+async function toggleListo(id, checked){
+  if(!puedeEditarListo()) return;
+  // Refresca antes de guardar, para no pisar cambios de otros usuarios.
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value) registros = JSON.parse(res.value);
+  }catch(e){ /* si falla, se sigue con lo que hay en memoria */ }
+  const rec = registros.find(r => r.id === id);
+  if(!rec) return;
+  rec.listo = checked;
+  rec.fechaListo = checked ? new Date().toISOString() : null;
+  await saveData();
+  render();
+  showToast(checked ? `Marcado como LISTO ✓ ${rec.codigo || ""}` : `Desmarcado ${rec.codigo || ""}`);
+}
+
+async function deleteRecord(id){
+  if(!confirm("¿Eliminar este registro? Esta acción no se puede deshacer.")) return;
+  registros = registros.filter(r => r.id !== id);
+  await saveData();
+  render();
+  showToast("Registro eliminado");
+}
+
+function getFiltered(){
+  const v = $("fVendedor").value;
+  const p = $("fPagina").value;
+  const q = $("fBuscar").value.trim().toLowerCase();
+  return misRegistros().filter(r=>{
+    if(v && r.vendedor !== v) return false;
+    if(p && r.pagina !== p) return false;
+    if(q){
+      const hay = `${r.cliente} ${r.codigo} ${r.distrito}`.toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+// ---------- Resumen por vendedor (solo visible para Administrador) ----------
+function renderAdminVendorSummary(misRegs){
+  const wrap = $("adminVendorSummary");
+  const insights = $("adminInsights");
+  if(!wrap) return;
+  if(!isAdmin()){
+    wrap.style.display = "none";
+    if(insights) insights.style.display = "none";
+    return;
+  }
+  wrap.style.display = "block";
+  if(insights) insights.style.display = "block";
+  const VENDEDORES = ["Angel", "Liz", "Lesly"];
+  const cont = $("adminVendorCards");
+  cont.innerHTML = VENDEDORES.map(nombre => {
+    const regs = misRegs.filter(r => (r.vendedor||"").trim().toLowerCase() === nombre.toLowerCase());
+    const monto = regs.reduce((s,r)=> s + (Number(r.precio)||0), 0);
+    const pendientes = regs.filter(r => !r.entregado).length;
+    return `
+      <div class="stat-card">
+        <div class="label">${nombre}</div>
+        <div class="value">${regs.length}</div>
+        <div class="sub">${fmtMoney(monto)} · ${pendientes} pendiente${pendientes===1?"":"s"}</div>
+      </div>
+    `;
+  }).join("");
+
+  // Top vendedores (ranking de producción)
+  const byVendedor = {};
+  misRegs.forEach(r=>{
+    const v = (r.vendedor||"").trim();
+    if(v) byVendedor[v] = (byVendedor[v]||0)+1;
+  });
+  renderBarChartVendedor(byVendedor);
+
+  // Avance diario por vendedor
+  renderDailyVendorProgress(misRegs, VENDEDORES);
+}
+
+// ---------- Avance diario por vendedor (tabla, solo Admin/Encargado) ----------
+function renderDailyVendorProgress(misRegs, VENDEDORES){
+  const el = $("dailyVendorProgress");
+  if(!el) return;
+  const porDia = {};
+  misRegs.forEach(r=>{
+    if(!r.fecha) return;
+    const v = (r.vendedor||"").trim() || "Otro";
+    if(!porDia[r.fecha]) porDia[r.fecha] = {};
+    porDia[r.fecha][v] = (porDia[r.fecha][v]||0) + 1;
+  });
+  const dias = Object.keys(porDia).sort().reverse().slice(0, 14);
+  if(dias.length === 0){
+    el.innerHTML = `<div class="chart-empty">Aún no hay registros con fecha.</div>`;
+    return;
+  }
+  const rows = dias.map(d=>{
+    const dia = porDia[d];
+    const total = VENDEDORES.reduce((s,v)=> s + (dia[v]||0), 0);
+    const celdas = VENDEDORES.map(v => `<td class="num">${dia[v]||0}</td>`).join("");
+    return `<tr><td>${fmtFecha(d)}</td>${celdas}<td class="num"><b>${total}</b></td></tr>`;
+  }).join("");
+  el.innerHTML = `
+    <div style="overflow-x:auto;">
+      <table style="min-width:auto; width:100%;">
+        <thead>
+          <tr>
+            <th style="position:static;">Fecha</th>
+            ${VENDEDORES.map(v=>`<th style="position:static;">${v}</th>`).join("")}
+            <th style="position:static;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function render(){
+  const filtered = getFiltered();
+  const tbody = $("tbody");
+  tbody.innerHTML = "";
+  $("emptyState").style.display = filtered.length ? "none" : "block";
+
+  filtered.forEach(r=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${fmtFecha(r.fecha)}</td>
+      <td>${r.codigo||""}</td>
+      <td>${r.vendedor||""}</td>
+      <td><span class="badge ${badgeClass(r.pagina)}">${r.pagina||""}</span></td>
+      <td class="wrap">${r.cliente||""}</td>
+      <td class="wrap">${r.direccion||""}</td>
+      <td>${r.distrito||""}</td>
+      <td>${r.contacto||""}</td>
+      <td><span class="badge ${r.entregado ? "entregado" : "pendiente"}">${r.entregado ? "Entregado" : "Pendiente"}</span></td>
+      <td>
+        <div class="listo-check">
+          <input type="checkbox" data-listo="${r.id}" ${r.listo ? "checked" : ""} ${puedeEditarListo() ? "" : "disabled"} title="Listo para despacho">
+        </div>
+      </td>
+      <td class="num">${fmtMoney(r.precio)}</td>
+      <td class="num">${r.vanoAncho||0}</td>
+      <td class="num">${r.vanoAncho ? (r.vanoAncho*10) : 0}</td>
+      <td class="num">${r.vanoAlto||0}</td>
+      <td class="num">${r.vanoAlto ? (r.vanoAlto*10) : 0}</td>
+      <td class="num">${r.hojaAncho||0}</td>
+      <td class="num">${r.hojaAlto||0}</td>
+      <td>${r.modelo||""}</td>
+      <td>${r.acabado||""}</td>
+      <td>${r.perforacion||""}</td>
+      <td class="wrap">${r.detalleSuperior||""}</td>
+      <td class="wrap">${r.observaciones||""}</td>
+      <td>
+        ${isDespacho() ? "" : `
+        <div class="actions">
+          <button class="icon-btn" title="Editar" data-edit="${r.id}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Eliminar" data-del="${r.id}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>`}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("[data-edit]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const rec = registros.find(r => r.id === btn.dataset.edit);
+      if(rec) openModal(rec);
+    });
+  });
+  tbody.querySelectorAll("[data-del]").forEach(btn=>{
+    btn.addEventListener("click", ()=> deleteRecord(btn.dataset.del));
+  });
+  tbody.querySelectorAll("[data-listo]").forEach(chk=>{
+    chk.addEventListener("change", ()=> toggleListo(chk.dataset.listo, chk.checked));
+  });
+
+  // Stats (sobre el total, no sobre filtrado)
+  const misRegs = misRegistros();
+  $("statTotal").textContent = misRegs.length;
+
+  const byFecha = {};
+  misRegs.forEach(r=>{
+    if(r.fecha) byFecha[r.fecha] = (byFecha[r.fecha]||0)+1;
+  });
+
+  renderHistorialFecha(byFecha);
+  renderAdminVendorSummary(misRegs);
+
+  // Pendientes / entregados + alerta de detalle en el dashboard
+  const pendientes = misRegs.filter(r => !r.entregado);
+  const entregados = misRegs.filter(r => r.entregado);
+  $("statPendientes").textContent = pendientes.length;
+
+  const statListoWrap = $("statListoWrap");
+  if(statListoWrap){
+    statListoWrap.style.display = veTodosLosRegistros() ? "" : "none";
+    $("statListo").textContent = misRegs.filter(r => r.listo).length;
+  }
+
+  $("alertPendingTitle").textContent = `Puertas pendientes de entrega (${pendientes.length})`;
+  const listEl = $("pendingDetailList");
+  if(pendientes.length === 0){
+    listEl.innerHTML = `<div class="pending-empty">✓ No hay puertas pendientes de entrega.</div>`;
+  } else {
+    listEl.innerHTML = pendientes.map(r => `
+      <div class="pending-row">
+        <b>${r.codigo||"(sin código)"}</b>
+        <span class="muted">·</span>
+        <span>${r.cliente||"(sin cliente)"}</span>
+        <span class="muted">·</span>
+        <span>${r.direccion||"(sin dirección)"}${r.distrito ? ", "+r.distrito : ""}</span>
+        <span class="muted">·</span>
+        <span class="muted">Vendedor: ${r.vendedor||"—"}</span>
+        <span class="muted">·</span>
+        <span class="muted">${r.contacto||""}</span>
+      </div>
+    `).join("");
+  }
+}
+
+// ---------- Gráfico de barras: puertas por cliente ----------
+function renderBarChartCliente(byCliente){
+  const el = $("chartCliente");
+  let entries = Object.entries(byCliente).sort((a,b) => b[1]-a[1]);
+  if(entries.length === 0){
+    el.innerHTML = `<div class="chart-empty">Aún no hay registros con cliente asignado.</div>`;
+    return;
+  }
+  const TOP_N = 8;
+  let shown = entries;
+  let restoCount = 0;
+  if(entries.length > TOP_N){
+    shown = entries.slice(0, TOP_N);
+    restoCount = entries.slice(TOP_N).reduce((s,e) => s + e[1], 0);
+  }
+  const max = Math.max(...shown.map(e => e[1]), restoCount);
+  let rows = shown.map(([nombre, cant]) => `
+    <div class="bar-row">
+      <div class="bar-label" title="${nombre}">${nombre}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${max ? Math.round(cant/max*100) : 0}%"></div></div>
+      <div class="bar-value">${cant}</div>
+    </div>
+  `).join("");
+  if(restoCount > 0){
+    rows += `
+    <div class="bar-row">
+      <div class="bar-label" title="Otros clientes">Otros (${entries.length - TOP_N})</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${max ? Math.round(restoCount/max*100) : 0}%; background:linear-gradient(90deg, var(--oak-600), var(--oak-500));"></div></div>
+      <div class="bar-value">${restoCount}</div>
+    </div>`;
+  }
+  el.innerHTML = `<div class="bar-chart">${rows}</div>`;
+}
+
+// ---------- Gráfico de barras: ranking de producción por vendedor ----------
+function renderBarChartVendedor(byVendedor){
+  const el = $("chartVendedor");
+  const entries = Object.entries(byVendedor).sort((a,b) => b[1]-a[1]);
+  if(entries.length === 0){
+    el.innerHTML = `<div class="chart-empty">Aún no hay registros con vendedor asignado.</div>`;
+    return;
+  }
+  const max = Math.max(...entries.map(e => e[1]));
+  const medallas = ["🥇","🥈","🥉"];
+  el.innerHTML = `<div class="bar-chart">` + entries.map(([nombre, cant], i) => `
+    <div class="bar-row">
+      <div class="bar-label" title="${nombre}">${medallas[i] ? medallas[i]+" " : ""}${nombre}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${max ? Math.round(cant/max*100) : 0}%"></div></div>
+      <div class="bar-value">${cant}</div>
+    </div>
+  `).join("") + `</div>`;
+}
+
+// ---------- Gráfico circular (donut): registros por página ----------
+const DONUT_COLORS = ["#B5601F", "#6B4423", "#8B5A2B", "#3D6B3D", "#A3372B", "#4A2E1F", "#D8C3A5", "#9A4E17"];
+function renderDonutChartPagina(byPagina){
+  const el = $("chartPagina");
+  const entries = Object.entries(byPagina).sort((a,b) => b[1]-a[1]);
+  const total = entries.reduce((s,e) => s + e[1], 0);
+  if(entries.length === 0 || total === 0){
+    el.innerHTML = `<div class="chart-empty">Aún no hay registros con página asignada.</div>`;
+    return;
+  }
+  const r = 52, cx = 60, cy = 60, circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const segments = entries.map(([nombre, cant], i) => {
+    const frac = cant / total;
+    const dash = frac * circumference;
+    const seg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${DONUT_COLORS[i % DONUT_COLORS.length]}"
+      stroke-width="18" stroke-dasharray="${dash} ${circumference-dash}" stroke-dashoffset="${-offset}"
+      transform="rotate(-90 ${cx} ${cy})" />`;
+    offset += dash;
+    return seg;
+  }).join("");
+
+  const legend = entries.map(([nombre, cant], i) => `
+    <div class="item">
+      <span class="dot" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></span>
+      <span class="name">${nombre}</span>
+      <span class="pct">${cant} · ${Math.round(cant/total*100)}%</span>
+    </div>
+  `).join("");
+
+  el.innerHTML = `
+    <div class="donut-wrap">
+      <svg width="120" height="120" viewBox="0 0 120 120">${segments}</svg>
+      <div class="donut-legend">${legend}</div>
+    </div>
+  `;
+}
+
+// ---------- Historial de ventas por día (gráfico de tendencia) ----------
+function renderHistorialFecha(byFecha){
+  const el = $("chartFecha");
+  const dias = Object.keys(byFecha).sort(); // "YYYY-MM-DD" ordena bien como string
+  if(dias.length === 0){
+    el.innerHTML = `<div class="chart-empty">Aún no hay registros con fecha.</div>`;
+    return;
+  }
+  const counts = dias.map(d => byFecha[d]);
+  const max = Math.max(...counts, 1);
+
+  const stepX = 62, padTop = 22, chartH = 150, padBottom = 34, padLeft = 26, padRight = 26;
+  const w = Math.max(padLeft + padRight + (dias.length - 1) * stepX, 260);
+  const h = padTop + chartH + padBottom;
+
+  const points = dias.map((d, i) => {
+    const cant = byFecha[d];
+    const x = dias.length > 1 ? padLeft + i * stepX : w/2;
+    const y = padTop + (chartH - (cant/max) * chartH);
+    return {x, y, cant, d};
+  });
+
+  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const areaD = `${pathD} L ${points[points.length-1].x} ${padTop+chartH} L ${points[0].x} ${padTop+chartH} Z`;
+
+  const dots = points.map(p => {
+    const [yy, mm, dd] = p.d.split("-");
+    const label = `${dd}/${mm}`;
+    return `
+      <g>
+        <circle class="trend-dot" cx="${p.x}" cy="${p.y}" r="4.5" fill="var(--rust-500)" stroke="var(--paper-50)" stroke-width="2">
+          <title>${label}: ${p.cant} venta(s)</title>
+        </circle>
+        <text x="${p.x}" y="${p.y - 12}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--walnut-900)">${p.cant}</text>
+        <text x="${p.x}" y="${padTop + chartH + 20}" text-anchor="middle" font-size="10" fill="#7a6a58">${label}</text>
+      </g>
+    `;
+  }).join("");
+
+  el.innerHTML = `
+    <div class="line-chart-scroll">
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <defs>
+          <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--rust-500)" stop-opacity="0.28"></stop>
+            <stop offset="100%" stop-color="var(--rust-500)" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        <line x1="${padLeft}" y1="${padTop+chartH}" x2="${w-padRight}" y2="${padTop+chartH}" stroke="var(--tan-300)" stroke-width="1"></line>
+        <path d="${areaD}" fill="url(#trendFill)" stroke="none"></path>
+        <path d="${pathD}" fill="none" stroke="var(--rust-500)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>
+        ${dots}
+      </svg>
+    </div>
+  `;
+}
+
+
+$("navDashboard").addEventListener("click", ()=> showView("dashboard"));
+$("navRegistro").addEventListener("click", ()=> openModal(null));
+$("modalClose").addEventListener("click", closeModal);
+$("btnCancel").addEventListener("click", closeModal);
+$("btnSave").addEventListener("click", saveRecord);
+$("btnPrint").addEventListener("click", printRegistro);
+$("fVendedor").addEventListener("change", render);
+$("fPagina").addEventListener("change", render);
+$("fBuscar").addEventListener("input", render);
+$("btnClearFilters").addEventListener("click", ()=>{
+  $("fVendedor").value=""; $("fPagina").value=""; $("fBuscar").value="";
+  render();
+});
+
+// ===================== EXPORTAR A EXCEL =====================
+async function exportToExcel(modo = "completo"){
+  if(typeof ExcelJS === "undefined"){
+    showToast("No se pudo cargar el módulo de Excel. Revisa tu conexión a internet.");
+    return;
+  }
+  const datos = misRegistros();
+  if(!datos.length){
+    showToast("No hay registros para exportar.");
+    return;
+  }
+
+  const columnasCompleto = [
+    { header: "Vendedor",        key: "vendedor",      width: 16 },
+    { header: "Fecha",           key: "fecha",          width: 13 },
+    { header: "Código",          key: "codigo",         width: 14 },
+    { header: "Página",          key: "pagina",         width: 18 },
+    { header: "Cliente",         key: "cliente",        width: 24 },
+    { header: "DNI",             key: "dni",             width: 13 },
+    { header: "Dirección",       key: "direccion",      width: 26 },
+    { header: "Distrito",        key: "distrito",       width: 16 },
+    { header: "Contacto",        key: "contacto",       width: 15 },
+    { header: "Estado",          key: "estado",         width: 13 },
+    { header: "Fecha entrega",   key: "fechaEntrega",   width: 19 },
+    { header: "Precio",          key: "precio",         width: 12 },
+    { header: "Vano Ancho (cm)", key: "vanoAncho",      width: 15 },
+    { header: "Medida mm",       key: "vanoAnchoMM",    width: 12 },
+    { header: "Vano Alto (cm)",  key: "vanoAlto",       width: 14 },
+    { header: "Medida mm",       key: "vanoAltoMM",     width: 12 },
+    { header: "Tipo apertura (Ancho)", key: "tipoApertura",   width: 18 },
+    { header: "Hoja Ancho (mm)", key: "hojaAncho",      width: 15 },
+    { header: "Tipo apertura (Alto)", key: "tipoAperturaAlto", width: 18 },
+    { header: "Hoja Alto (mm)",  key: "hojaAlto",       width: 14 },
+    { header: "Modelo",          key: "modelo",         width: 16 },
+    { header: "Acabado",         key: "acabado",        width: 16 },
+    { header: "Perforación",     key: "perforacion",    width: 16 },
+    { header: "Detalle superior",key: "detalleSuperior",width: 20 },
+    { header: "Observaciones",   key: "observaciones",  width: 26 },
+  ];
+
+  // Solo lo que necesita el taller para fabricar: sin datos comerciales (precio, cliente, vendedor, etc.)
+  const columnasTaller = [
+    { header: "Fecha",           key: "fecha",          width: 13 },
+    { header: "Código",          key: "codigo",         width: 14 },
+    { header: "Distrito",        key: "distrito",       width: 16 },
+    { header: "Vano Ancho (cm)", key: "vanoAncho",      width: 15 },
+    { header: "Medida mm",       key: "vanoAnchoMM",    width: 12 },
+    { header: "Vano Alto (cm)",  key: "vanoAlto",       width: 14 },
+    { header: "Medida mm",       key: "vanoAltoMM",     width: 12 },
+    { header: "Hoja Ancho (mm)", key: "hojaAncho",      width: 15 },
+    { header: "Hoja Alto (mm)",  key: "hojaAlto",       width: 14 },
+    { header: "Modelo",          key: "modelo",         width: 16 },
+    { header: "Observaciones",   key: "observaciones",  width: 30 },
+  ];
+
+  // Para Despacho: datos operativos para preparar y despachar (sin precio, con estado y "listo").
+  const columnasDespacho = [
+    { header: "Fecha",           key: "fecha",          width: 13 },
+    { header: "Código",          key: "codigo",         width: 14 },
+    { header: "Cliente",         key: "cliente",        width: 24 },
+    { header: "Dirección",       key: "direccion",      width: 26 },
+    { header: "Distrito",        key: "distrito",       width: 16 },
+    { header: "Contacto",        key: "contacto",       width: 15 },
+    { header: "Vano Ancho (cm)", key: "vanoAncho",      width: 15 },
+    { header: "Vano Alto (cm)",  key: "vanoAlto",       width: 14 },
+    { header: "Hoja Ancho (mm)", key: "hojaAncho",      width: 15 },
+    { header: "Hoja Alto (mm)",  key: "hojaAlto",       width: 14 },
+    { header: "Modelo",          key: "modelo",         width: 16 },
+    { header: "Listo",           key: "listo",          width: 12 },
+    { header: "Estado",          key: "estado",         width: 13 },
+    { header: "Observaciones",   key: "observaciones",  width: 26 },
+  ];
+
+  const columnas = modo === "taller" ? columnasTaller : (modo === "despacho" ? columnasDespacho : columnasCompleto);
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Sistema de Registro de Puertas";
+  wb.created = new Date();
+  const ws = wb.addWorksheet("Registros", {
+    views: [{ state: "frozen", ySplit: 1 }]
+  });
+  ws.columns = columnas;
+
+  datos.forEach(r => {
+    ws.addRow({
+      vendedor: r.vendedor || "",
+      fecha: fmtFecha(r.fecha),
+      codigo: r.codigo || "",
+      pagina: r.pagina || "",
+      cliente: r.cliente || "",
+      dni: r.dni || "",
+      direccion: r.direccion || "",
+      distrito: r.distrito || "",
+      contacto: r.contacto || "",
+      estado: r.entregado ? "Entregado" : "Pendiente",
+      listo: r.listo ? "Sí" : "No",
+      fechaEntrega: r.fechaEntrega ? new Date(r.fechaEntrega).toLocaleString("es-PE") : "",
+      precio: Number(r.precio) || 0,
+      vanoAncho: r.vanoAncho ?? "",
+      vanoAnchoMM: r.vanoAncho ? Number(r.vanoAncho) * 10 : "",
+      vanoAlto: r.vanoAlto ?? "",
+      vanoAltoMM: r.vanoAlto ? Number(r.vanoAlto) * 10 : "",
+      tipoApertura: r.tipoApertura || "",
+      hojaAncho: r.hojaAncho ?? "",
+      tipoAperturaAlto: r.tipoAperturaAlto || "",
+      hojaAlto: r.hojaAlto ?? "",
+      modelo: r.modelo || "",
+      acabado: r.acabado || "",
+      perforacion: r.perforacion || "",
+      detalleSuperior: r.detalleSuperior || "",
+      observaciones: r.observaciones || "",
+    });
+  });
+
+  // ---- Encabezado bonito ----
+  const headerRow = ws.getRow(1);
+  headerRow.height = 26;
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Calibri", bold: true, size: 11.5, color: { argb: "FFFBF6EF" } };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF9A4E17" }
+    };
+    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+    cell.border = {
+      top: { style: "thin", color: { argb: "FF6B4423" } },
+      bottom: { style: "thin", color: { argb: "FF6B4423" } },
+      left: { style: "thin", color: { argb: "FF6B4423" } },
+      right: { style: "thin", color: { argb: "FF6B4423" } },
+    };
+  });
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columnas.length } };
+
+  // ---- Filas con bordes suaves y precio formateado ----
+  const precioColIdx = columnas.findIndex(c => c.key === "precio") + 1;
+  const estadoColIdx = columnas.findIndex(c => c.key === "estado") + 1;
+  const listoColIdx = columnas.findIndex(c => c.key === "listo") + 1;
+  for(let i = 2; i <= ws.rowCount; i++){
+    const row = ws.getRow(i);
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = {
+        bottom: { style: "hair", color: { argb: "FFD8C3A5" } },
+      };
+      cell.alignment = { vertical: "middle" };
+    });
+    if(i % 2 === 0){
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3ECE1" } };
+      });
+    }
+    if(precioColIdx > 0) row.getCell(precioColIdx).numFmt = '"S/" #,##0.00';
+    if(estadoColIdx > 0){
+      const estadoCell = row.getCell(estadoColIdx);
+      if(estadoCell.value === "Entregado"){
+        estadoCell.font = { color: { argb: "FF3D6B3D" }, bold: true };
+      } else if(estadoCell.value === "Pendiente"){
+        estadoCell.font = { color: { argb: "FFA3372B" }, bold: true };
+      }
+    }
+    if(listoColIdx > 0){
+      const listoCell = row.getCell(listoColIdx);
+      listoCell.font = { color: { argb: listoCell.value === "Sí" ? "FF2B5F7A" : "FF6B4423" }, bold: true };
+    }
+  }
+
+  const fechaHoy = new Date().toISOString().slice(0,10);
+  const sufijo = modo === "taller" ? "_taller" : (modo === "despacho" ? "_despacho" : "");
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `registros_puertas${sufijo}_${fechaHoy}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast("Excel descargado ✓");
+}
+$("btnExportExcel").addEventListener("click", ()=> exportToExcel("completo"));
+$("btnExportExcelTaller").addEventListener("click", ()=> exportToExcel("taller"));
+$("btnExportExcelDespacho").addEventListener("click", ()=> exportToExcel("despacho"));
+// ===================== FIN EXPORTAR A EXCEL =====================
+
+
+// ===================== LOGIN =====================
+const USERS = {
+  "ANGEL": "ANGEL2026",
+  "LIZ": "LIZ2026",
+  "LESLY": "LESLY2026",
+  "ADMINISTRADOR": "ADMINISTRADOR",
+  "DESPACHO": "DESPACHO2026",
+  "ENCARGADO": "ENCARGADO2026"
+};
+const SESSION_KEY = "puertas_session_user";
+
+function showApp(username){
+  currentUser = username;
+  $("loginScreen").style.display = "none";
+  $("appShellWrap").style.display = "block";
+  const label = $("currentUserLabel");
+  if(label) label.textContent = username.charAt(0) + username.slice(1).toLowerCase();
+  const filtroVendedor = $("filtroVendedorWrap");
+  if(filtroVendedor) filtroVendedor.style.display = isAdmin() ? "" : "none";
+
+  // Despacho: solo ve el Dashboard, no registra datos.
+  const soloDespacho = isDespacho();
+  const navRegistro = $("navRegistro");
+  const navDivider = document.querySelector(".nav-divider");
+  if(navRegistro) navRegistro.style.display = soloDespacho ? "none" : "";
+  if(navDivider) navDivider.style.display = soloDespacho ? "none" : "";
+
+  // Botones de exportar: Despacho solo ve un botón directo con su propio formato.
+  const btnExcelCompleto = $("btnExportExcel");
+  const btnExcelTaller = $("btnExportExcelTaller");
+  const btnExcelDespacho = $("btnExportExcelDespacho");
+  if(btnExcelCompleto) btnExcelCompleto.style.display = soloDespacho ? "none" : "";
+  if(btnExcelTaller) btnExcelTaller.style.display = soloDespacho ? "none" : "";
+  if(btnExcelDespacho) btnExcelDespacho.style.display = soloDespacho ? "" : "none";
+
+  loadData();
+  if(soloDespacho){
+    showView("dashboard");
+  } else {
+    openModal(null);
+  }
+}
+
+function tryLogin(user, pass){
+  const u = (user || "").trim().toUpperCase();
+  const p = (pass || "").trim();
+  const errorEl = $("loginError");
+  if(!u || !p){
+    errorEl.textContent = "Ingresa usuario y contraseña.";
+    return;
+  }
+  if(USERS[u] && USERS[u] === p){
+    errorEl.textContent = "";
+    sessionStorage.setItem(SESSION_KEY, u);
+    showApp(u);
+  }else{
+    errorEl.textContent = "Usuario o contraseña incorrectos.";
+  }
+}
+
+$("loginForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  tryLogin($("loginUser").value, $("loginPass").value);
+});
+
+$("btnLogout").addEventListener("click", () => {
+  sessionStorage.removeItem(SESSION_KEY);
+  currentUser = null;
+  $("appShellWrap").style.display = "none";
+  $("loginScreen").style.display = "flex";
+  $("loginUser").value = "";
+  $("loginPass").value = "";
+  $("loginError").textContent = "";
+});
+
+const savedUser = sessionStorage.getItem(SESSION_KEY);
+if(savedUser && USERS[savedUser]){
+  showApp(savedUser);
+}
+// ===================== FIN LOGIN =====================
+</script>
+</body>
+</html>
