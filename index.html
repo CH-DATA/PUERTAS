@@ -707,7 +707,7 @@
     </button>
   </div>
 
-  <div class="table-wrap">
+  <div class="table-wrap" id="mainTableWrap">
     <div class="table-scroll">
       <table>
         <thead>
@@ -747,6 +747,32 @@
     <div class="empty-state" id="emptyState" style="display:none;">
       <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="4" width="32" height="40" rx="2" stroke="#8a7a68" stroke-width="2"/><line x1="8" y1="12" x2="40" y2="12" stroke="#8a7a68" stroke-width="1.4"/><circle cx="34" cy="24" r="1.8" fill="#8a7a68"/></svg>
       <div>Aún no hay registros. Crea el primero con "Nuevo registro".</div>
+    </div>
+  </div>
+
+  <!-- ===== Vista simplificada para Despacho: código, medidas, distrito, modelo, observaciones y "Listo" al final ===== -->
+  <div class="table-wrap" id="despachoTableWrap" style="display:none;">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Distrito</th>
+            <th>Vano Ancho (cm)</th>
+            <th>Vano Alto (cm)</th>
+            <th>Hoja Ancho (mm)</th>
+            <th>Hoja Alto (mm)</th>
+            <th>Modelo</th>
+            <th>Observaciones</th>
+            <th>Listo</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyDespacho"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="emptyStateDespacho" style="display:none;">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="4" width="32" height="40" rx="2" stroke="#8a7a68" stroke-width="2"/><line x1="8" y1="12" x2="40" y2="12" stroke="#8a7a68" stroke-width="1.4"/><circle cx="34" cy="24" r="1.8" fill="#8a7a68"/></svg>
+      <div>Aún no hay registros.</div>
     </div>
   </div>
 
@@ -1560,6 +1586,38 @@ function render(){
     chk.addEventListener("change", ()=> toggleListo(chk.dataset.listo, chk.checked));
   });
 
+  // ---- Tabla simplificada para Despacho: código, medidas, distrito, modelo, observaciones y "Listo" al final ----
+  const tbodyDespacho = $("tbodyDespacho");
+  if(tbodyDespacho){
+    tbodyDespacho.innerHTML = "";
+    const emptyDespacho = $("emptyStateDespacho");
+    if(emptyDespacho) emptyDespacho.style.display = filtered.length ? "none" : "block";
+
+    filtered.forEach(r=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.codigo||""}</td>
+        <td>${r.distrito||""}</td>
+        <td class="num">${r.vanoAncho||0}</td>
+        <td class="num">${r.vanoAlto||0}</td>
+        <td class="num">${r.hojaAncho||0}</td>
+        <td class="num">${r.hojaAlto||0}</td>
+        <td>${r.modelo||""}</td>
+        <td class="wrap">${r.observaciones||""}</td>
+        <td>
+          <div class="listo-check">
+            <input type="checkbox" data-listo-d="${r.id}" ${r.listo ? "checked" : ""} ${puedeEditarListo() ? "" : "disabled"} title="Listo para despacho">
+          </div>
+        </td>
+      `;
+      tbodyDespacho.appendChild(tr);
+    });
+
+    tbodyDespacho.querySelectorAll("[data-listo-d]").forEach(chk=>{
+      chk.addEventListener("change", ()=> toggleListo(chk.dataset.listoD, chk.checked));
+    });
+  }
+
   // Stats (sobre el total, no sobre filtrado)
   const misRegs = misRegistros();
   $("statTotal").textContent = misRegs.length;
@@ -1822,22 +1880,16 @@ async function exportToExcel(modo = "completo"){
     { header: "Observaciones",   key: "observaciones",  width: 30 },
   ];
 
-  // Para Despacho: datos operativos para preparar y despachar (sin precio, con estado y "listo").
+  // Para Despacho: solo lo que necesita para preparar el pedido (código, medidas, distrito, modelo y observaciones).
   const columnasDespacho = [
-    { header: "Fecha",           key: "fecha",          width: 13 },
     { header: "Código",          key: "codigo",         width: 14 },
-    { header: "Cliente",         key: "cliente",        width: 24 },
-    { header: "Dirección",       key: "direccion",      width: 26 },
-    { header: "Distrito",        key: "distrito",       width: 16 },
-    { header: "Contacto",        key: "contacto",       width: 15 },
     { header: "Vano Ancho (cm)", key: "vanoAncho",      width: 15 },
     { header: "Vano Alto (cm)",  key: "vanoAlto",       width: 14 },
     { header: "Hoja Ancho (mm)", key: "hojaAncho",      width: 15 },
     { header: "Hoja Alto (mm)",  key: "hojaAlto",       width: 14 },
+    { header: "Distrito",        key: "distrito",       width: 16 },
     { header: "Modelo",          key: "modelo",         width: 16 },
-    { header: "Listo",           key: "listo",          width: 12 },
-    { header: "Estado",          key: "estado",         width: 13 },
-    { header: "Observaciones",   key: "observaciones",  width: 26 },
+    { header: "Observaciones",   key: "observaciones",  width: 30 },
   ];
 
   const columnas = modo === "taller" ? columnasTaller : (modo === "despacho" ? columnasDespacho : columnasCompleto);
@@ -1988,6 +2040,24 @@ function showApp(username){
   if(btnExcelCompleto) btnExcelCompleto.style.display = soloDespacho ? "none" : "";
   if(btnExcelTaller) btnExcelTaller.style.display = soloDespacho ? "none" : "";
   if(btnExcelDespacho) btnExcelDespacho.style.display = soloDespacho ? "" : "none";
+
+  // Despacho: Dashboard simplificado — solo el botón de Excel y, al final, la tabla con "Listo".
+  const dashStats = document.querySelector(".stats");
+  const dashChartsFull = document.querySelector(".charts-row-full");
+  const dashAlert = $("alertPending");
+  const filtroPagina = $("fPagina") ? $("fPagina").closest(".field") : null;
+  const filtroBuscar = $("fBuscar") ? $("fBuscar").closest(".field") : null;
+  const btnClearFilters = $("btnClearFilters");
+  const mainTableWrap = $("mainTableWrap");
+  const despachoTableWrap = $("despachoTableWrap");
+  if(dashStats) dashStats.style.display = soloDespacho ? "none" : "";
+  if(dashChartsFull) dashChartsFull.style.display = soloDespacho ? "none" : "";
+  if(dashAlert) dashAlert.style.display = soloDespacho ? "none" : "";
+  if(filtroPagina) filtroPagina.style.display = soloDespacho ? "none" : "";
+  if(filtroBuscar) filtroBuscar.style.display = soloDespacho ? "none" : "";
+  if(btnClearFilters) btnClearFilters.style.display = soloDespacho ? "none" : "";
+  if(mainTableWrap) mainTableWrap.style.display = soloDespacho ? "none" : "";
+  if(despachoTableWrap) despachoTableWrap.style.display = soloDespacho ? "" : "none";
 
   loadData();
   if(soloDespacho){
