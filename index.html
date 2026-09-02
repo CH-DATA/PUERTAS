@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --walnut-900:#2B1B10;
@@ -947,7 +949,20 @@
 </div>
 
 <script>
-const STORAGE_KEY = "registros_puertas";
+// ===================== FIREBASE (Firestore) =====================
+const firebaseConfig = {
+  apiKey: "AIzaSyDhVrkuFBEZRixvKFmGDR5hufXHbNuG4eE",
+  authDomain: "puertas-2c094.firebaseapp.com",
+  projectId: "puertas-2c094",
+  storageBucket: "puertas-2c094.firebasestorage.app",
+  messagingSenderId: "1007099194331",
+  appId: "1:1007099194331:web:82a352823b59a497c5d5fe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const REG_DOC = db.collection("puertas_data").doc("registros_puertas");
+// ===================== FIN FIREBASE =====================
+
 let registros = [];
 let editingId = null;
 let currentUser = null;
@@ -1020,20 +1035,30 @@ function codigoDisponible(codigoDeseado, excludeId){
 
 async function loadData(){
   try{
-    const res = await window.storage.get(STORAGE_KEY, true);
-    registros = res && res.value ? JSON.parse(res.value) : [];
+    const snap = await REG_DOC.get();
+    registros = snap.exists && Array.isArray(snap.data().registros) ? snap.data().registros : [];
   }catch(e){
     registros = [];
+    showToast("⚠ No se pudo conectar con la base de datos.");
   }
   render();
 }
 
 async function saveData(){
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(registros), true);
+    await REG_DOC.set({ registros });
   }catch(e){
     showToast("⚠ No se pudo guardar. Intenta de nuevo.");
   }
+}
+
+// Trae la última versión compartida (de todos los usuarios) sin re-renderizar,
+// para no pisar cambios de otras personas antes de escribir.
+async function refrescarRegistros(){
+  try{
+    const snap = await REG_DOC.get();
+    if(snap.exists && Array.isArray(snap.data().registros)) registros = snap.data().registros;
+  }catch(e){ /* si falla, se sigue con lo que hay en memoria */ }
 }
 
 function showView(view){
@@ -1124,10 +1149,7 @@ async function openModal(record){
   if(!record){
     // Refresca los registros compartidos (de todos los usuarios) para que el
     // código automático no choque con uno generado por otra persona.
-    try{
-      const res = await window.storage.get(STORAGE_KEY, true);
-      if(res && res.value) registros = JSON.parse(res.value);
-    }catch(e){ /* si falla, se sigue con lo que hay en memoria */ }
+    await refrescarRegistros();
   }
   populateClienteSearchList();
 
@@ -1216,10 +1238,7 @@ async function saveRecord(){
 
   // Refresca los registros compartidos (de todos los usuarios) antes de
   // validar duplicados de código, para detectar códigos creados por otros.
-  try{
-    const res = await window.storage.get(STORAGE_KEY, true);
-    if(res && res.value) registros = JSON.parse(res.value);
-  }catch(e){ /* si falla, se sigue con los registros ya cargados en memoria */ }
+  await refrescarRegistros();
 
   let codigoFinal = $("iCodigo").value.trim();
   if(codigoFinal){
@@ -1410,10 +1429,7 @@ function printRegistro(){
 async function toggleListo(id, checked){
   if(!puedeEditarListo()) return;
   // Refresca antes de guardar, para no pisar cambios de otros usuarios.
-  try{
-    const res = await window.storage.get(STORAGE_KEY, true);
-    if(res && res.value) registros = JSON.parse(res.value);
-  }catch(e){ /* si falla, se sigue con lo que hay en memoria */ }
+  await refrescarRegistros();
   const rec = registros.find(r => r.id === id);
   if(!rec) return;
   rec.listo = checked;
@@ -2062,9 +2078,22 @@ function showApp(username){
   loadData();
   if(soloDespacho){
     showView("dashboard");
+    activarSincronizacionEnVivo();
   } else {
     openModal(null);
   }
+}
+
+// Despacho ve los registros en vivo (sin recargar) apenas alguien guarda uno nuevo.
+let unsubscribeLive = null;
+function activarSincronizacionEnVivo(){
+  if(unsubscribeLive) return;
+  unsubscribeLive = REG_DOC.onSnapshot((snap)=>{
+    if(snap.exists && Array.isArray(snap.data().registros)){
+      registros = snap.data().registros;
+      render();
+    }
+  }, ()=>{ /* si falla la conexión en vivo, se sigue viendo lo último cargado */ });
 }
 
 function tryLogin(user, pass){
