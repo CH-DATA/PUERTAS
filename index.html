@@ -100,7 +100,7 @@
   .login-btn{
     width:100%; padding:14px; border:none; border-radius:12px; cursor:pointer;
     background: linear-gradient(135deg, var(--rust-500), var(--rust-600));
-    color:#fff; font-family:var(--font-body); font-weight:700; font-size:14.5px;
+    color:#fff; font-family: var(--font-body); font-weight:700; font-size:14.5px;
     letter-spacing:.4px; box-shadow: 0 8px 20px rgba(56,142,60,0.35);
     transition: transform .12s ease, box-shadow .12s ease;
   }
@@ -454,11 +454,6 @@
   }
 
   /* ---------- Nav de hojas (barra lateral) ---------- */
-  /* Cada botón tiene su propio color de acento (--nav-c / --nav-c-dark). Estado por
-     defecto: translúcido sobre el panel oscuro. Al pasar el mouse, se tiñe levemente
-     con su color. Al estar seleccionado (vista actual), se rellena por completo con
-     su color, brilla y hace un pequeño "pop" para que sea evidente qué pantalla se
-     está viendo. */
   .navtabs{
     display:flex; flex-direction:column; gap:10px; position:relative; z-index:1;
   }
@@ -490,7 +485,6 @@
   }
   .navtab.active svg, .navtab-primary.active svg{ transform: scale(1.1); }
   .navtab-primary{ font-weight:700; font-size:14px; padding:14px; --nav-c: var(--rust-500); --nav-c-dark: var(--rust-600); }
-  /* Acento propio por botón: así cada sección se identifica por color de un vistazo. */
   #navRegistro{ --nav-c: var(--rust-500); --nav-c-dark: var(--rust-600); }
   #navVenta{ --nav-c: var(--gold-500); --nav-c-dark: #A67B28; }
   #navDashboard{ --nav-c: var(--gold-500); --nav-c-dark: #A67B28; }
@@ -1127,6 +1121,8 @@
             <th>Tipo de apertura</th>
             <th>Perforación</th>
             <th>Observaciones</th>
+            <th>Listo</th>
+            <th>Pagado</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -1184,6 +1180,17 @@
       <div class="venta-hero-stat">
         <b id="ventaHoyTotalUnidades">0</b>
         <span>Unidades vendidas hoy</span>
+      </div>
+    </div>
+
+    <div class="filters" style="padding:20px 28px 0;">
+      <div class="field" style="flex:1 1 320px;">
+        <label>Cliente — Nombre y apellidos o DNI</label>
+        <input type="text" id="iComboCliente" placeholder="Ej. Juan Pérez o 12345678">
+      </div>
+      <div class="field">
+        <label>Fecha</label>
+        <input type="date" id="iComboFecha">
       </div>
     </div>
 
@@ -1271,7 +1278,7 @@
       <div style="overflow-x:auto;">
         <table class="combo-mini-table" id="comboDetalleTable">
           <thead>
-            <tr><th>Fecha</th><th>Vendedor</th><th>Combo</th><th>Cant.</th><th>Monto</th></tr>
+            <tr><th>Fecha</th><th>Cliente / DNI</th><th>Vendedor</th><th>Combo</th><th>Cant.</th><th>Monto</th></tr>
           </thead>
           <tbody id="comboDetalleBody"></tbody>
         </table>
@@ -1928,6 +1935,7 @@ async function saveRecord(){
     record.listo = prev?.listo || false;
     record.fechaListo = prev?.fechaListo || null;
     record.anulado = prev?.anulado || false;
+    record.comisionPagada = prev?.comisionPagada || false;
     const idx = registros.findIndex(r => r.id === editingId);
     if(idx > -1) registros[idx] = record;
   } else {
@@ -1937,6 +1945,7 @@ async function saveRecord(){
     record.listo = false;
     record.fechaListo = null;
     record.anulado = false;
+    record.comisionPagada = false;
     registros.unshift(record);
   }
   await saveData();
@@ -2100,6 +2109,17 @@ async function toggleEntregado(id, checked){
   showToast(checked ? `Marcado como ENTREGADO ✓ ${rec.codigo || ""}` : `Desmarcado ${rec.codigo || ""}`);
 }
 
+// Marca/desmarca el pago de comisión de UN pedido puntual (queda guardado en el propio registro).
+async function toggleComisionPagada(id, checked){
+  await refrescarRegistros();
+  const rec = registros.find(r => r.id === id);
+  if(!rec) return;
+  rec.comisionPagada = checked;
+  await saveData();
+  renderComisiones(misRegistros(), ["Angel","Liz","Lesly"]);
+  showToast(checked ? `Comisión marcada como PAGADA ✓ ${rec.codigo || ""}` : `Comisión desmarcada ${rec.codigo || ""}`);
+}
+
 async function deleteRecord(id){
   if(!confirm("¿Eliminar este registro? Esta acción no se puede deshacer.")) return;
   registros = registros.filter(r => r.id !== id);
@@ -2176,7 +2196,7 @@ function renderAdminVendorSummary(misRegs){
     // Avance diario por vendedor
     renderDailyVendorProgress(misRegs, VENDEDORES);
 
-    // Comisiones por vendedor / por rango de fechas
+    // Comisiones por vendedor / por rango de fechas (tabla por pedido, con "Pagado" individual)
     renderComisiones(misRegs, VENDEDORES);
   } else if(esEncargado()){
     if(encargadoDash) encargadoDash.style.display = "block";
@@ -2186,7 +2206,7 @@ function renderAdminVendorSummary(misRegs){
   }
 }
 
-// ---------- Comisiones: rango de fechas por vendedor, con check de "ya pagué" ----------
+// ---------- Comisiones: rango de fechas por vendedor, tabla por pedido con "Pagado" individual ----------
 function renderComisiones(misRegs, VENDEDORES){
   const wrap = $("comisionResumen");
   if(!wrap) return;
@@ -2199,61 +2219,88 @@ function renderComisiones(misRegs, VENDEDORES){
   let regs = misRegs;
   if(desde) regs = regs.filter(r => r.fecha && r.fecha >= desde);
   if(hasta) regs = regs.filter(r => r.fecha && r.fecha <= hasta);
-  // La comisión solo corre sobre puertas ya ENTREGADAS (no sobre pendientes).
-  regs = regs.filter(r => r.entregado);
-
-  const lista = selVendedor ? [selVendedor] : VENDEDORES;
-  const periodoKey = `${desde || "*"}|${hasta || "*"}`;
-
-  let totalPuertas = 0, totalMonto = 0, totalComision = 0;
-  const tarjetas = lista.map(v=>{
-    const regsV = regs.filter(r => (r.vendedor||"").trim().toLowerCase() === v.toLowerCase());
-    const monto = regsV.reduce((s,r)=> s + (Number(r.precio)||0), 0);
-    const comision = monto * pct / 100;
-    totalPuertas += regsV.length; totalMonto += monto; totalComision += comision;
-
-    const key = `${v}|${periodoKey}`;
-    const pagado = !!pagosComisiones[key];
-
-    return `
-      <div class="comision-card ${pagado ? "is-paid" : ""}" data-comision-card="${key}">
-        <div class="comision-card-head">
-          <span class="comision-name">${v}</span>
-          <span class="comision-count">${regsV.length} venta${regsV.length===1?"":"s"}</span>
-        </div>
-        <div class="comision-row"><span>Monto</span><b>${fmtMoney(monto)}</b></div>
-        <div class="comision-row"><span>Comisión (${pct}%)</span><b>${fmtMoney(comision)}</b></div>
-        <div class="comision-pay">
-          <input type="checkbox" id="pagoChk-${key}" data-pago-key="${key}" ${pagado ? "checked" : ""}>
-          <label for="pagoChk-${key}">Ya pagué</label>
-          <span class="paid-chip">✓ Pagado</span>
-        </div>
-      </div>
-    `;
-  }).join("");
+  if(selVendedor) regs = regs.filter(r => (r.vendedor||"").trim().toLowerCase() === selVendedor.toLowerCase());
+  // Se muestran todas las ventas (entregadas o no) para que el Administrador pueda
+  // marcar "Entregado" desde aquí mismo y luego "Pagado" cuando ya esté todo cumplido.
+  regs = regs.filter(r => !r.anulado);
+  regs = regs.slice().sort((a,b)=> (b.fecha||"").localeCompare(a.fecha||"") || (b.codigo||"").localeCompare(a.codigo||""));
 
   const tituloPeriodo = (desde || hasta)
     ? `del ${desde ? fmtFecha(desde) : "inicio"} al ${hasta ? fmtFecha(hasta) : "hoy"}`
     : "todo el periodo";
 
+  if(regs.length === 0){
+    wrap.innerHTML = `
+      <div class="comision-meta">Mostrando ${tituloPeriodo}${selVendedor ? ", solo " + selVendedor : ""} · Comisión = Monto × ${pct}%</div>
+      <div class="chart-empty">No hay ventas registradas en este periodo.</div>
+    `;
+    return;
+  }
+
+  let totalMonto = 0, totalComision = 0;
+  const filas = regs.map(r=>{
+    const monto = Number(r.precio) || 0;
+    const comision = monto * pct / 100;
+    totalMonto += monto; totalComision += comision;
+    const pagado = !!r.comisionPagada;
+    return `
+      <tr data-comision-row="${r.id}" class="${pagado ? "comision-row-paid" : ""}">
+        <td>${r.codigo||""}</td>
+        <td class="wrap">${r.cliente||""}</td>
+        <td>${r.vendedor||""}</td>
+        <td>${fmtFecha(r.fecha)}</td>
+        <td class="num">${fmtMoney(monto)}</td>
+        <td class="num">${fmtMoney(comision)}</td>
+        <td><span class="badge ${r.listo ? "listo-si" : "listo-no"}">${r.listo ? "Listo" : "Pendiente"}</span></td>
+        <td>
+          <div class="listo-check">
+            <input type="checkbox" data-entregado-comision="${r.id}" ${r.entregado ? "checked" : ""} title="Marcar como entregado">
+          </div>
+        </td>
+        <td>
+          <div class="listo-check">
+            <input type="checkbox" data-pagado-comision="${r.id}" ${pagado ? "checked" : ""} title="Marcar comisión como pagada">
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
   wrap.innerHTML = `
-    <div class="comision-meta">Mostrando ${tituloPeriodo}${selVendedor ? ", solo " + selVendedor : ""} · Comisión = Monto × ${pct}% · Solo puertas ya entregadas</div>
-    <div class="comision-grid">${tarjetas}</div>
-    ${lista.length > 1 ? `
-      <div class="comision-totals">
-        <div class="comision-total-chip">Ventas <b>${totalPuertas}</b></div>
-        <div class="comision-total-chip">Monto <b>${fmtMoney(totalMonto)}</b></div>
-        <div class="comision-total-chip">Comisión <b>${fmtMoney(totalComision)}</b></div>
-      </div>` : ""}
+    <div class="comision-meta">Mostrando ${tituloPeriodo}${selVendedor ? ", solo " + selVendedor : ""} · Comisión = Monto × ${pct}%</div>
+    <div class="table-scroll">
+      <table class="table-resumen">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Cliente</th>
+            <th>Vendedor</th>
+            <th>Fecha</th>
+            <th>Monto</th>
+            <th>Comisión (${pct}%)</th>
+            <th>Listo</th>
+            <th>Entregado</th>
+            <th>Pagado</th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="total-label">Total (${regs.length} venta${regs.length===1?"":"s"})</td>
+            <td class="num">${fmtMoney(totalMonto)}</td>
+            <td class="num">${fmtMoney(totalComision)}</td>
+            <td colspan="3"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   `;
 
-  wrap.querySelectorAll("[data-pago-key]").forEach(chk=>{
-    chk.addEventListener("change", ()=>{
-      const key = chk.dataset.pagoKey;
-      const card = wrap.querySelector(`[data-comision-card="${key}"]`);
-      if(card) card.classList.toggle("is-paid", chk.checked);
-      guardarPagoComision(key, chk.checked);
-    });
+  wrap.querySelectorAll("[data-entregado-comision]").forEach(chk=>{
+    chk.addEventListener("change", ()=> toggleEntregado(chk.dataset.entregadoComision, chk.checked));
+  });
+  wrap.querySelectorAll("[data-pagado-comision]").forEach(chk=>{
+    chk.addEventListener("change", ()=> toggleComisionPagada(chk.dataset.pagadoComision, chk.checked));
   });
 }
 
@@ -2285,10 +2332,13 @@ function renderDailyVendorProgress(misRegs, VENDEDORES){
   const totales = dias.map(d => Object.values(porDia[d].counts).reduce((s,n)=> s+n, 0));
   const max = Math.max(...totales, 1);
   const TRACK_MAX_PX = 90;
+  // Alto del contenedor ajustado al tamaño real del gráfico (valor + barra + etiqueta),
+  // en vez del alto fijo genérico de .vbar-chart, para que no quede con espacio vacío arriba.
+  const CONTAINER_H = TRACK_MAX_PX + 70;
 
   el.innerHTML = `
     <div class="comision-meta" style="margin-bottom:10px;">${leyenda}</div>
-    <div class="vbar-chart">` + dias.map((d,i)=>{
+    <div class="vbar-chart" style="height:${CONTAINER_H}px;">` + dias.map((d,i)=>{
     const dia = porDia[d];
     const total = totales[i];
     const trackH = Math.max(Math.round(total / max * TRACK_MAX_PX), 4);
@@ -2511,6 +2561,9 @@ function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function renderComboGrid(){
   const grid = $("comboGrid");
   if(!grid) return;
+  // La fecha viene por defecto en el día de hoy (el vendedor puede cambiarla si lo necesita).
+  const fechaInput = $("iComboFecha");
+  if(fechaInput && !fechaInput.value) fechaInput.value = hoyISO();
   grid.innerHTML = COMBOS.map(c=>{
     if(comboQtyState[c.id] == null) comboQtyState[c.id] = 1;
     const qty = comboQtyState[c.id];
@@ -2527,7 +2580,7 @@ function renderComboGrid(){
           <div class="combo-qty-val" id="qtyVal-${c.id}">${qty}</div>
           <button class="combo-qty-btn" type="button" data-qty-mas="${c.id}">+</button>
         </div>
-        <button class="combo-btn" type="button" data-registrar="${c.id}">Registrar venta</button>
+        <button class="combo-btn" type="button" data-registrar="${c.id}">Guardar venta</button>
       </div>
     `;
   }).join("");
@@ -2557,11 +2610,21 @@ function renderComboGrid(){
 async function registrarVentaCombo(comboId){
   const combo = COMBOS.find(c => c.id === comboId);
   if(!combo || !esVendedor()) return;
+  const clienteInput = $("iComboCliente");
+  const cliente = clienteInput ? clienteInput.value.trim() : "";
+  if(!cliente){
+    showToast("Escribe el nombre y apellidos o DNI del cliente antes de guardar la venta.");
+    if(clienteInput) clienteInput.focus();
+    return;
+  }
+  const fechaInput = $("iComboFecha");
+  const fecha = (fechaInput && fechaInput.value) ? fechaInput.value : hoyISO();
   const cantidad = comboQtyState[comboId] || 1;
   const venta = {
     id: "v" + Date.now() + Math.random().toString(36).slice(2,7),
-    fecha: hoyISO(),
+    fecha,
     vendedor: nombreVendedorActual(),
+    cliente,
     comboId: combo.id,
     comboNombre: combo.nombre,
     precioUnit: combo.precio,
@@ -2571,7 +2634,9 @@ async function registrarVentaCombo(comboId){
   ventasCombos.push(venta);
   comboQtyState[comboId] = 1;
   renderComboGrid();
-  showToast(`✓ Venta registrada: ${cantidad} × ${combo.nombre}`);
+  // Deja el campo de cliente en blanco, listo para la siguiente venta.
+  if(clienteInput) clienteInput.value = "";
+  showToast(`✓ Venta guardada: ${cantidad} × ${combo.nombre}`);
   await saveVentasCombos();
 }
 
@@ -2602,8 +2667,8 @@ function renderVentasHoy(){
   list.innerHTML = misVentas.map(v => `
     <div class="venta-hoy-item">
       <div>
-        <div class="vh-combo">${v.comboNombre}</div>
-        <div class="vh-meta">${v.cantidad} unidad${v.cantidad===1?"":"es"} · ${fmtMoney(v.precioUnit)} c/u</div>
+        <div class="vh-combo">${v.comboNombre}${v.cliente ? " — " + v.cliente : ""}</div>
+        <div class="vh-meta">${v.cantidad} unidad${v.cantidad===1?"":"es"} · ${fmtMoney(v.precioUnit)} c/u · ${fmtFecha(v.fecha)}</div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
         <div class="vh-monto">${fmtMoney(v.total)}</div>
@@ -2729,6 +2794,7 @@ function renderVentasCombosDashboard(VENDEDORES){
   bodyEl.innerHTML = detalle.map(v => `
     <tr>
       <td>${fmtFecha(v.fecha)}</td>
+      <td>${v.cliente||"—"}</td>
       <td>${v.vendedor||""}</td>
       <td>${v.comboNombre||""}</td>
       <td>${v.cantidad||0}</td>
@@ -2761,6 +2827,8 @@ function render(){
       <td>${textoTipoAperturaAlto(r)}</td>
       <td>${r.perforacion||""}</td>
       <td class="wrap">${r.observaciones||""}</td>
+      <td><span class="badge ${r.listo ? "listo-si" : "listo-no"}">${r.listo ? "Listo" : "Pendiente"}</span></td>
+      <td><span class="badge ${r.comisionPagada ? "entregado" : "pendiente"}">${r.comisionPagada ? "Pagado" : "No pagado"}</span></td>
       <td>
         ${isDespacho() ? "" : `
         <div class="actions">
@@ -3310,8 +3378,9 @@ function showApp(username){
   if(filtroPagina) filtroPagina.style.display = soloDespacho ? "none" : "";
   if(filtroBuscar) filtroBuscar.style.display = soloDespacho ? "none" : "";
   if(btnClearFilters) btnClearFilters.style.display = soloDespacho ? "none" : "";
-  // El cuadro de registros del Dashboard ya no se muestra (solo se usa el botón de Descargar Excel).
-  if(mainTableWrap) mainTableWrap.style.display = "none";
+  // El cuadro de registros del Dashboard: solo el vendedor lo ve (con Listo, Pagado y sus acciones).
+  // Administrador, Encargado y Despacho tienen sus propias tablas y solo usan el botón de Descargar Excel aquí.
+  if(mainTableWrap) mainTableWrap.style.display = esVendedor() ? "" : "none";
   if(despachoTableWrap) despachoTableWrap.style.display = soloDespacho ? "" : "none";
   // Para Encargado ocultamos toda la fila de filtros/exportar del Dashboard (queda solo su panel).
   if(filtersRow) filtersRow.style.display = soloEncargadoDash ? "none" : "";
