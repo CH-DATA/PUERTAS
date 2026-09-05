@@ -826,15 +826,6 @@
       <div class="login-error" id="loginError"></div>
       <button type="submit" class="login-btn">Ingresar</button>
     </form>
-
-    <div class="login-users">
-      <span class="login-chip">Angel</span>
-      <span class="login-chip">Liz</span>
-      <span class="login-chip">Lesly</span>
-      <span class="login-chip">Despacho</span>
-      <span class="login-chip login-chip-strong">Encargado</span>
-      <span class="login-chip login-chip-strong">Administrador</span>
-    </div>
   </div>
 </div>
 
@@ -1126,6 +1117,7 @@
             <th>Tipo de apertura</th>
             <th>Perforación</th>
             <th>Observaciones</th>
+            <th>Monto de Venta</th>
             <th>Listo</th>
             <th>Pagado</th>
             <th>Acciones</th>
@@ -2990,6 +2982,7 @@ function render(){
       <td>${textoTipoAperturaAlto(r)}</td>
       <td>${r.perforacion||""}</td>
       <td class="wrap">${r.observaciones||""}</td>
+      <td class="num">${fmtMoney(r.precio)}</td>
       <td><span class="badge ${r.listo ? "listo-si" : "listo-no"}">${r.listo ? "Listo" : "Pendiente"}</span></td>
       <td><span class="badge ${r.comisionPagada ? "entregado" : "pendiente"}">${r.comisionPagada ? "Pagado" : "No pagado"}</span></td>
       <td>
