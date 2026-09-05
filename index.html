@@ -746,6 +746,10 @@
   .venta-hoy-item .vh-meta{ font-size:11.5px; color:#4F7A5A; }
   .venta-hoy-item .vh-monto{ font-weight:700; color:var(--rust-600); white-space:nowrap; }
   .venta-hoy-item .icon-btn.danger{ margin-left:4px; }
+  .venta-hoy-item.row-anulado{ opacity:0.6; }
+  .venta-hoy-item.row-anulado .vh-combo,
+  .venta-hoy-item.row-anulado .vh-meta,
+  .venta-hoy-item.row-anulado .vh-monto{ text-decoration:line-through; color:#8a988f; }
 
   /* ---------- Dashboard de ventas por combo (Encargado / Administrador) ---------- */
   .leader-grid{
@@ -1278,7 +1282,7 @@
       <div style="overflow-x:auto;">
         <table class="combo-mini-table" id="comboDetalleTable">
           <thead>
-            <tr><th>Fecha</th><th>Cliente / DNI</th><th>Vendedor</th><th>Combo</th><th>Cant.</th><th>Monto</th></tr>
+            <tr><th>Fecha</th><th>Cliente / DNI</th><th>Vendedor</th><th>Combo</th><th>Cant.</th><th>Monto</th><th>Acciones</th></tr>
           </thead>
           <tbody id="comboDetalleBody"></tbody>
         </table>
@@ -1287,6 +1291,45 @@
     </div>
   </div>
   <!-- ===================== FIN HOJA: DASHBOARD DE VENTA ===================== -->
+
+  <!-- ===================== MODAL: EDITAR VENTA DE ACCESORIO ===================== -->
+  <div class="overlay" id="ventaEditOverlay">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <h2>Editar venta de accesorio</h2>
+        <button class="modal-close" id="ventaEditClose" title="Cerrar">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field full" style="margin-bottom:12px;">
+          <label>Cliente — Nombre y apellidos o DNI</label>
+          <input type="text" id="eVentaCliente" placeholder="Ej. Juan Pérez o 12345678">
+        </div>
+        <div class="grid2" style="margin-bottom:12px;">
+          <div class="field">
+            <label>Fecha</label>
+            <input type="date" id="eVentaFecha">
+          </div>
+          <div class="field">
+            <label>Cantidad</label>
+            <input type="number" id="eVentaCantidad" min="1" step="1">
+          </div>
+        </div>
+        <div class="field full" style="margin-bottom:6px;">
+          <label>Combo</label>
+          <select id="eVentaCombo"></select>
+        </div>
+        <div class="calc-box" style="margin:10px 0 4px;">
+          <span>Precio unit.: <b id="eVentaPrecioUnit">S/ 0.00</b></span>
+          <span>Total: <b id="eVentaTotal">S/ 0.00</b></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="ventaEditCancelar" type="button">Cancelar</button>
+        <button class="btn-primary" id="ventaEditGuardar" type="button">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+  <!-- ===================== FIN MODAL: EDITAR VENTA DE ACCESORIO ===================== -->
 
   <!-- ===================== HOJA: NUEVO REGISTRO ===================== -->
   <div class="hoja" id="hojaRegistro">
@@ -1640,6 +1683,7 @@ async function loadData(){
     registros = Array.isArray(data.registros) ? data.registros : [];
     pagosComisiones = (data.pagosComisiones && typeof data.pagosComisiones === "object") ? data.pagosComisiones : {};
     ventasCombos = Array.isArray(data.ventasCombos) ? data.ventasCombos : [];
+    ventasCombos.forEach(v => { if(v.anulado == null) v.anulado = false; });
   }catch(e){
     registros = [];
     pagosComisiones = {};
@@ -2629,7 +2673,8 @@ async function registrarVentaCombo(comboId){
     comboNombre: combo.nombre,
     precioUnit: combo.precio,
     cantidad,
-    total: combo.precio * cantidad
+    total: combo.precio * cantidad,
+    anulado: false
   };
   ventasCombos.push(venta);
   comboQtyState[comboId] = 1;
@@ -2641,9 +2686,89 @@ async function registrarVentaCombo(comboId){
 }
 
 async function eliminarVentaCombo(ventaId){
+  if(!confirm("¿Eliminar esta venta de accesorio? Esta acción no se puede deshacer.")) return;
   ventasCombos = ventasCombos.filter(v => v.id !== ventaId);
   renderVentasHoy();
+  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly"]);
   await saveVentasCombos();
+  showToast("Venta eliminada");
+}
+
+async function toggleAnularVentaCombo(ventaId){
+  const v = ventasCombos.find(x => x.id === ventaId);
+  if(!v) return;
+  const nuevoEstado = !v.anulado;
+  if(nuevoEstado && !confirm(`¿Anular la venta de ${v.comboNombre || ""}?`)) return;
+  v.anulado = nuevoEstado;
+  renderVentasHoy();
+  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly"]);
+  await saveVentasCombos();
+  showToast(nuevoEstado ? "Venta anulada" : "Venta reactivada");
+}
+
+let editingVentaComboId = null;
+
+// Abre el modal de edición para una venta de combo existente.
+function openEditVentaCombo(ventaId){
+  const v = ventasCombos.find(x => x.id === ventaId);
+  if(!v) return;
+  editingVentaComboId = ventaId;
+
+  const selCombo = $("eVentaCombo");
+  if(selCombo){
+    selCombo.innerHTML = COMBOS.map(c => `<option value="${c.id}">${c.nombre} — ${fmtMoney(c.precio)}</option>`).join("");
+    selCombo.value = v.comboId;
+  }
+  if($("eVentaCliente")) $("eVentaCliente").value = v.cliente || "";
+  if($("eVentaFecha")) $("eVentaFecha").value = v.fecha || hoyISO();
+  if($("eVentaCantidad")) $("eVentaCantidad").value = v.cantidad || 1;
+  actualizarPreviewEdicionVenta();
+  if($("ventaEditOverlay")) $("ventaEditOverlay").classList.add("open");
+}
+
+function closeEditVentaCombo(){
+  editingVentaComboId = null;
+  if($("ventaEditOverlay")) $("ventaEditOverlay").classList.remove("open");
+}
+
+// Recalcula precio unitario y total en vivo mientras se edita.
+function actualizarPreviewEdicionVenta(){
+  const comboId = $("eVentaCombo") ? $("eVentaCombo").value : null;
+  const combo = COMBOS.find(c => c.id === comboId);
+  const cantidad = Math.max(1, Number($("eVentaCantidad") ? $("eVentaCantidad").value : 1) || 1);
+  const precio = combo ? combo.precio : 0;
+  if($("eVentaPrecioUnit")) $("eVentaPrecioUnit").textContent = fmtMoney(precio);
+  if($("eVentaTotal")) $("eVentaTotal").textContent = fmtMoney(precio * cantidad);
+}
+
+async function guardarEdicionVentaCombo(){
+  const v = ventasCombos.find(x => x.id === editingVentaComboId);
+  if(!v) return;
+  const cliente = $("eVentaCliente") ? $("eVentaCliente").value.trim() : "";
+  if(!cliente){
+    showToast("Escribe el nombre y apellidos o DNI del cliente.");
+    return;
+  }
+  const comboId = $("eVentaCombo") ? $("eVentaCombo").value : v.comboId;
+  const combo = COMBOS.find(c => c.id === comboId) || COMBOS.find(c => c.id === v.comboId);
+  const fecha = ($("eVentaFecha") && $("eVentaFecha").value) ? $("eVentaFecha").value : v.fecha;
+  const cantidad = Math.max(1, Number($("eVentaCantidad") ? $("eVentaCantidad").value : 1) || 1);
+
+  v.cliente = cliente;
+  v.fecha = fecha;
+  v.cantidad = cantidad;
+  if(combo){
+    v.comboId = combo.id;
+    v.comboNombre = combo.nombre;
+    v.precioUnit = combo.precio;
+  }
+  v.total = (v.precioUnit || 0) * cantidad;
+
+  closeEditVentaCombo();
+  renderVentasHoy();
+  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly"]);
+  await saveVentasCombos();
+  showToast("Venta actualizada");
 }
 
 // Lista las ventas de combos del vendedor actual, solo del día de hoy.
@@ -2655,8 +2780,8 @@ function renderVentasHoy(){
     .filter(v => v.fecha === hoy && (v.vendedor||"").toLowerCase() === nombreVendedorActual().toLowerCase())
     .sort((a,b)=> (b.id||"").localeCompare(a.id||""));
 
-  const totalUnidades = misVentas.reduce((s,v)=> s + (Number(v.cantidad)||0), 0);
-  const totalMonto = misVentas.reduce((s,v)=> s + (Number(v.total)||0), 0);
+  const totalUnidades = misVentas.filter(v=>!v.anulado).reduce((s,v)=> s + (Number(v.cantidad)||0), 0);
+  const totalMonto = misVentas.filter(v=>!v.anulado).reduce((s,v)=> s + (Number(v.total)||0), 0);
   if($("ventaHoyTotalUnidades")) $("ventaHoyTotalUnidades").textContent = totalUnidades;
   if($("ventaHoyResumen")) $("ventaHoyResumen").textContent = fmtMoney(totalMonto);
 
@@ -2665,13 +2790,19 @@ function renderVentasHoy(){
     return;
   }
   list.innerHTML = misVentas.map(v => `
-    <div class="venta-hoy-item">
+    <div class="venta-hoy-item ${v.anulado ? "row-anulado" : ""}">
       <div>
-        <div class="vh-combo">${v.comboNombre}${v.cliente ? " — " + v.cliente : ""}</div>
+        <div class="vh-combo">${v.comboNombre}${v.cliente ? " — " + v.cliente : ""}${v.anulado ? " (Anulada)" : ""}</div>
         <div class="vh-meta">${v.cantidad} unidad${v.cantidad===1?"":"es"} · ${fmtMoney(v.precioUnit)} c/u · ${fmtFecha(v.fecha)}</div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
         <div class="vh-monto">${fmtMoney(v.total)}</div>
+        <button class="icon-btn" title="Editar" data-edit-venta="${v.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="icon-btn danger" title="${v.anulado ? "Reactivar" : "Anular"}" data-anular-venta="${v.id}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <button class="icon-btn danger" title="Eliminar" data-del-venta="${v.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -2679,6 +2810,12 @@ function renderVentasHoy(){
     </div>
   `).join("");
 
+  list.querySelectorAll("[data-edit-venta]").forEach(btn=>{
+    btn.addEventListener("click", ()=> openEditVentaCombo(btn.dataset.editVenta));
+  });
+  list.querySelectorAll("[data-anular-venta]").forEach(btn=>{
+    btn.addEventListener("click", ()=> toggleAnularVentaCombo(btn.dataset.anularVenta));
+  });
   list.querySelectorAll("[data-del-venta]").forEach(btn=>{
     btn.addEventListener("click", ()=> eliminarVentaCombo(btn.dataset.delVenta));
   });
@@ -2712,17 +2849,18 @@ function renderVentasCombosDashboard(VENDEDORES){
 
   let { ventas, desde, hasta, vendedor } = filtrarPorFechaCombo();
   // Si no hay filtro de fechas, se muestran los últimos 14 días con actividad para no saturar la vista.
-  let ventasParaChart = ventas;
+  let ventasParaChart = ventas.filter(v => !v.anulado);
   if(!desde && !hasta){
-    const diasConVentas = [...new Set(ventas.map(v=>v.fecha).filter(Boolean))].sort().slice(-14);
-    ventasParaChart = ventas.filter(v => diasConVentas.includes(v.fecha));
+    const diasConVentas = [...new Set(ventasParaChart.map(v=>v.fecha).filter(Boolean))].sort().slice(-14);
+    ventasParaChart = ventasParaChart.filter(v => diasConVentas.includes(v.fecha));
   }
 
-  // ---- KPIs ----
-  const totalUnidades = ventas.reduce((s,v)=> s + (Number(v.cantidad)||0), 0);
-  const totalMonto = ventas.reduce((s,v)=> s + (Number(v.total)||0), 0);
+  // ---- KPIs (las ventas anuladas no cuentan en los totales ni en el ranking) ----
+  const ventasActivas = ventas.filter(v => !v.anulado);
+  const totalUnidades = ventasActivas.reduce((s,v)=> s + (Number(v.cantidad)||0), 0);
+  const totalMonto = ventasActivas.reduce((s,v)=> s + (Number(v.total)||0), 0);
   const porVendedorTotal = {};
-  ventas.forEach(v=>{
+  ventasActivas.forEach(v=>{
     const nom = (v.vendedor||"Otro").trim() || "Otro";
     porVendedorTotal[nom] = (porVendedorTotal[nom]||0) + (Number(v.cantidad)||0);
   });
@@ -2733,7 +2871,7 @@ function renderVentasCombosDashboard(VENDEDORES){
 
   // ---- Leaderboard por vendedor ----
   const montoPorVendedor = {};
-  ventas.forEach(v=>{
+  ventasActivas.forEach(v=>{
     const nom = (v.vendedor||"Otro").trim() || "Otro";
     montoPorVendedor[nom] = (montoPorVendedor[nom]||0) + (Number(v.total)||0);
   });
@@ -2792,15 +2930,38 @@ function renderVentasCombosDashboard(VENDEDORES){
   const detalle = ventas.slice().sort((a,b)=> (b.fecha||"").localeCompare(a.fecha||"") || (b.id||"").localeCompare(a.id||""));
   if(emptyEl) emptyEl.style.display = detalle.length ? "none" : "block";
   bodyEl.innerHTML = detalle.map(v => `
-    <tr>
+    <tr class="${v.anulado ? "row-anulado" : ""}">
       <td>${fmtFecha(v.fecha)}</td>
       <td>${v.cliente||"—"}</td>
       <td>${v.vendedor||""}</td>
-      <td>${v.comboNombre||""}</td>
+      <td>${v.comboNombre||""}${v.anulado ? " (Anulada)" : ""}</td>
       <td>${v.cantidad||0}</td>
       <td>${fmtMoney(v.total)}</td>
+      <td>
+        <div class="actions">
+          <button class="icon-btn" title="Editar" data-edit-venta-admin="${v.id}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn danger" title="${v.anulado ? "Reactivar" : "Anular"}" data-anular-venta-admin="${v.id}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn danger" title="Eliminar" data-del-venta-admin="${v.id}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </td>
     </tr>
   `).join("");
+
+  bodyEl.querySelectorAll("[data-edit-venta-admin]").forEach(btn=>{
+    btn.addEventListener("click", ()=> openEditVentaCombo(btn.dataset.editVentaAdmin));
+  });
+  bodyEl.querySelectorAll("[data-anular-venta-admin]").forEach(btn=>{
+    btn.addEventListener("click", ()=> toggleAnularVentaCombo(btn.dataset.anularVentaAdmin));
+  });
+  bodyEl.querySelectorAll("[data-del-venta-admin]").forEach(btn=>{
+    btn.addEventListener("click", ()=> eliminarVentaCombo(btn.dataset.delVentaAdmin));
+  });
 }
 
 // ==================== FIN VENTA DE COMBOS ====================
@@ -3110,6 +3271,13 @@ if($("btnComboLimpiar")) $("btnComboLimpiar").addEventListener("click", ()=>{
   $("fComboHasta").value = "";
   refreshVentaDashboard();
 });
+// Modal de edición de venta de accesorio (combo)
+if($("ventaEditClose")) $("ventaEditClose").addEventListener("click", closeEditVentaCombo);
+if($("ventaEditCancelar")) $("ventaEditCancelar").addEventListener("click", closeEditVentaCombo);
+if($("ventaEditGuardar")) $("ventaEditGuardar").addEventListener("click", guardarEdicionVentaCombo);
+if($("eVentaCombo")) $("eVentaCombo").addEventListener("change", actualizarPreviewEdicionVenta);
+if($("eVentaCantidad")) $("eVentaCantidad").addEventListener("input", actualizarPreviewEdicionVenta);
+
 $("modalClose").addEventListener("click", closeModal);
 $("btnCancel").addEventListener("click", closeModal);
 $("btnSave").addEventListener("click", saveRecord);
