@@ -1115,6 +1115,7 @@
             <th>Hoja Alto (mm)</th>
             <th>Modelo</th>
             <th>Tipo de apertura</th>
+            <th>Acabado</th>
             <th>Perforación</th>
             <th>Observaciones</th>
             <th>Monto de Venta</th>
@@ -2980,6 +2981,7 @@ function render(){
       <td class="num">${r.hojaAlto||0}</td>
       <td>${r.modelo||""}</td>
       <td>${textoTipoAperturaAlto(r)}</td>
+      <td>${r.acabado||""}</td>
       <td>${r.perforacion||""}</td>
       <td class="wrap">${r.observaciones||""}</td>
       <td class="num">${fmtMoney(r.precio)}</td>
