@@ -1085,6 +1085,14 @@
       <label>Buscar (cliente, código, distrito)</label>
       <input type="text" id="fBuscar" placeholder="Ej. Juan Pérez, PP-0001, San Isidro...">
     </div>
+    <div class="field" id="filtroFechaDesdeWrap">
+      <label>Fecha desde</label>
+      <input type="date" id="fFechaDesde">
+    </div>
+    <div class="field" id="filtroFechaHastaWrap">
+      <label>Fecha hasta</label>
+      <input type="date" id="fFechaHasta">
+    </div>
     <button class="btn-clear" id="btnClearFilters">Limpiar filtros</button>
     <button class="btn-export btn-export-inline" id="btnExportExcel">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2183,9 +2191,13 @@ function getFiltered(){
   const v = $("fVendedor").value;
   const p = $("fPagina").value;
   const q = $("fBuscar").value.trim().toLowerCase();
+  const desde = $("fFechaDesde") ? $("fFechaDesde").value : "";
+  const hasta = $("fFechaHasta") ? $("fFechaHasta").value : "";
   return misRegistros().filter(r=>{
     if(v && r.vendedor !== v) return false;
     if(p && r.pagina !== p) return false;
+    if(desde && (!r.fecha || r.fecha < desde)) return false;
+    if(hasta && (!r.fecha || r.fecha > hasta)) return false;
     if(q){
       const hay = `${r.cliente} ${r.codigo} ${r.distrito}`.toLowerCase();
       if(!hay.includes(q)) return false;
@@ -3282,8 +3294,12 @@ $("btnPrint").addEventListener("click", printRegistro);
 $("fVendedor").addEventListener("change", render);
 $("fPagina").addEventListener("change", render);
 $("fBuscar").addEventListener("input", render);
+if($("fFechaDesde")) $("fFechaDesde").addEventListener("change", render);
+if($("fFechaHasta")) $("fFechaHasta").addEventListener("change", render);
 $("btnClearFilters").addEventListener("click", ()=>{
   $("fVendedor").value=""; $("fPagina").value=""; $("fBuscar").value="";
+  if($("fFechaDesde")) $("fFechaDesde").value="";
+  if($("fFechaHasta")) $("fFechaHasta").value="";
   render();
 });
 
@@ -3293,9 +3309,10 @@ async function exportToExcel(modo = "completo"){
     showToast("No se pudo cargar el módulo de Excel. Revisa tu conexión a internet.");
     return;
   }
-  const datos = modo === "encargado" ? filtrarPorFechaEncargado(misRegistros()) : misRegistros();
+  const datos = modo === "encargado" ? filtrarPorFechaEncargado(misRegistros())
+    : (modo === "despacho" ? misRegistros() : getFiltered());
   if(!datos.length){
-    showToast("No hay registros para exportar.");
+    showToast("No hay registros para exportar con los filtros actuales.");
     return;
   }
 
@@ -3463,12 +3480,22 @@ async function exportToExcel(modo = "completo"){
 
   const fechaHoy = new Date().toISOString().slice(0,10);
   const sufijo = modo === "taller" ? "_taller" : (modo === "despacho" ? "_despacho" : (modo === "encargado" ? "_encargado" : ""));
+  const desdeFiltro = $("fFechaDesde") ? $("fFechaDesde").value : "";
+  const hastaFiltro = $("fFechaHasta") ? $("fFechaHasta").value : "";
+  let sufijoFecha = "";
+  if(modo !== "encargado" && modo !== "despacho" && (desdeFiltro || hastaFiltro)){
+    if(desdeFiltro && hastaFiltro && desdeFiltro === hastaFiltro){
+      sufijoFecha = `_${desdeFiltro}`;
+    } else {
+      sufijoFecha = `_${desdeFiltro || "inicio"}_a_${hastaFiltro || "hoy"}`;
+    }
+  }
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/octet-stream" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `registros_puertas${sufijo}_${fechaHoy}.xlsx`;
+  a.download = sufijoFecha ? `registros_puertas${sufijo}${sufijoFecha}.xlsx` : `registros_puertas${sufijo}_${fechaHoy}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -3536,6 +3563,8 @@ function showApp(username){
   const dashAlert = $("alertPending");
   const filtroPagina = $("fPagina") ? $("fPagina").closest(".field") : null;
   const filtroBuscar = $("fBuscar") ? $("fBuscar").closest(".field") : null;
+  const filtroFechaDesde = $("filtroFechaDesdeWrap");
+  const filtroFechaHasta = $("filtroFechaHastaWrap");
   const btnClearFilters = $("btnClearFilters");
   const mainTableWrap = $("mainTableWrap");
   const despachoTableWrap = $("despachoTableWrap");
@@ -3545,6 +3574,8 @@ function showApp(username){
   if(dashAlert) dashAlert.style.display = (soloDespacho || soloEncargadoDash) ? "none" : "";
   if(filtroPagina) filtroPagina.style.display = soloDespacho ? "none" : "";
   if(filtroBuscar) filtroBuscar.style.display = soloDespacho ? "none" : "";
+  if(filtroFechaDesde) filtroFechaDesde.style.display = soloDespacho ? "none" : "";
+  if(filtroFechaHasta) filtroFechaHasta.style.display = soloDespacho ? "none" : "";
   if(btnClearFilters) btnClearFilters.style.display = soloDespacho ? "none" : "";
   // El cuadro de registros del Dashboard: solo el vendedor lo ve (con Listo, Pagado y sus acciones).
   // Administrador, Encargado y Despacho tienen sus propias tablas y solo usan el botón de Descargar Excel aquí.
