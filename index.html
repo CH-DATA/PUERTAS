@@ -1423,7 +1423,7 @@
           <label>Tipo de apertura</label>
           <select id="iTipoApertura">
             <option value="">Selecciona...</option>
-            <option value="Batiente">Batiente (Ancho Vano − 51 mm)</option>
+            <option value="Batiente">Batiente (Ancho Vano − 55 mm)</option>
             <option value="Vaivén">Vaivén (Ancho Vano − 78 mm)</option>
             <option value="Especial">Especial (Ancho Vano − 71 mm)</option>
             <option value="Corrediza">Corrediza (Ancho Vano + 30 mm)</option>
@@ -1869,7 +1869,7 @@ function closeModal(){
 // Vano y Hoja: el Vano solo muestra una referencia informativa (Vano x 10).
 // La fórmula de Tipo de apertura afecta la Hoja — Ancho (a partir del Vano — Ancho).
 // La Hoja — Alto: "Tragaluz" la fija en 2070 mm; "Puerta entera" resta 33 mm al Vano Alto (mm); si no, es manual.
-const DELTAS_APERTURA = { "Batiente": -51, "Vaivén": -78, "Especial": -71, "Corrediza": 30 };
+const DELTAS_APERTURA = { "Batiente": -55, "Vaivén": -78, "Especial": -71, "Corrediza": 30 };
 const FIJOS_APERTURA_ALTO = { "Tragaluz": 2070 };
 const DELTAS_APERTURA_ALTO = { "Puerta entera": -33 };
 
