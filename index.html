@@ -339,6 +339,9 @@
     border:1px solid var(--tan-300); box-shadow: var(--shadow); overflow:hidden;
   }
   .table-scroll{overflow-x:auto;}
+  /* Encabezado fijo al deslizar hacia abajo en la tabla resumen del Encargado */
+  #encargadoTableWrap .table-scroll{ max-height:65vh; overflow-y:auto; }
+  #encargadoTableWrap thead th{ top:0; z-index:1; }
   table{border-collapse:collapse; width:100%; min-width:1500px;}
   thead th{
     background: var(--walnut-700); color:#FBF6EF; font-size:11px; text-transform:uppercase;
@@ -1023,6 +1026,7 @@
               <th>Dirección</th>
               <th>Monto</th>
               <th>Listo</th>
+              <th>Por Salir</th>
               <th>Entregado</th>
             </tr>
           </thead>
@@ -1031,7 +1035,7 @@
             <tr>
               <td colspan="7" class="total-label">Total</td>
               <td class="num" id="tdTotalMontoEncargado">S/ 0.00</td>
-              <td colspan="2"></td>
+              <td colspan="3"></td>
             </tr>
           </tfoot>
         </table>
@@ -1981,6 +1985,8 @@ async function saveRecord(){
     record.fotoEntrega = prev?.fotoEntrega || null;
     record.listo = prev?.listo || false;
     record.fechaListo = prev?.fechaListo || null;
+    record.porSalir = prev?.porSalir || false;
+    record.fechaPorSalir = prev?.fechaPorSalir || null;
     record.anulado = prev?.anulado || false;
     record.comisionPagada = prev?.comisionPagada || false;
     const idx = registros.findIndex(r => r.id === editingId);
@@ -1991,6 +1997,8 @@ async function saveRecord(){
     record.fotoEntrega = null;
     record.listo = false;
     record.fechaListo = null;
+    record.porSalir = false;
+    record.fechaPorSalir = null;
     record.anulado = false;
     record.comisionPagada = false;
     registros.unshift(record);
@@ -2154,6 +2162,18 @@ async function toggleEntregado(id, checked){
   await saveData();
   render();
   showToast(checked ? `Marcado como ENTREGADO ✓ ${rec.codigo || ""}` : `Desmarcado ${rec.codigo || ""}`);
+}
+
+async function togglePorSalir(id, checked){
+  // Refresca antes de guardar, para no pisar cambios de otros usuarios.
+  await refrescarRegistros();
+  const rec = registros.find(r => r.id === id);
+  if(!rec) return;
+  rec.porSalir = checked;
+  rec.fechaPorSalir = checked ? new Date().toISOString() : null;
+  await saveData();
+  render();
+  showToast(checked ? `Marcado como POR SALIR ✓ ${rec.codigo || ""}` : `Desmarcado ${rec.codigo || ""}`);
 }
 
 // Marca/desmarca el pago de comisión de UN pedido puntual (queda guardado en el propio registro).
@@ -2517,11 +2537,20 @@ function renderTablaEncargado(misRegs){
       <td><span class="badge ${r.listo ? "listo-si" : "listo-no"}">${r.listo ? "Listo" : "Pendiente"}</span></td>
       <td>
         <div class="listo-check">
+          <input type="checkbox" data-porsalir-enc="${r.id}" ${r.porSalir ? "checked" : ""} title="Marcar como por salir">
+        </div>
+      </td>
+      <td>
+        <div class="listo-check">
           <input type="checkbox" data-entregado-enc="${r.id}" ${r.entregado ? "checked" : ""} title="Marcar como entregado">
         </div>
       </td>
     `;
     tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("[data-porsalir-enc]").forEach(chk=>{
+    chk.addEventListener("change", ()=> togglePorSalir(chk.dataset.porsalirEnc, chk.checked));
   });
 
   tbody.querySelectorAll("[data-entregado-enc]").forEach(chk=>{
@@ -3378,6 +3407,7 @@ async function exportToExcel(modo = "completo"){
     { header: "Dirección",       key: "direccion",      width: 26 },
     { header: "Monto",           key: "precio",         width: 12 },
     { header: "Listo",           key: "listo",          width: 10 },
+    { header: "Por Salir",       key: "porSalir",       width: 12 },
     { header: "Estado",          key: "estado",         width: 13 },
   ];
 
@@ -3407,6 +3437,7 @@ async function exportToExcel(modo = "completo"){
       contacto: r.contacto || "",
       estado: r.entregado ? "Entregado" : "Pendiente",
       listo: r.listo ? "Sí" : "No",
+      porSalir: r.porSalir ? "Sí" : "No",
       fechaEntrega: r.fechaEntrega ? new Date(r.fechaEntrega).toLocaleString("es-PE") : "",
       precio: Number(r.precio) || 0,
       vanoAncho: r.vanoAncho ?? "",
