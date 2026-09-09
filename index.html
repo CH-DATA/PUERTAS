@@ -342,6 +342,9 @@
   /* Encabezado fijo al deslizar hacia abajo en la tabla resumen del Encargado */
   #encargadoTableWrap .table-scroll{ max-height:65vh; overflow-y:auto; }
   #encargadoTableWrap thead th{ top:0; z-index:1; }
+  /* Tabla de comisiones del Administrador: muestra ~10 filas con scroll interno y encabezado fijo */
+  #comisionResumen .table-scroll{ max-height:440px; overflow-y:auto; }
+  #comisionResumen thead th{ top:0; z-index:1; }
   table{border-collapse:collapse; width:100%; min-width:1500px;}
   thead th{
     background: var(--walnut-700); color:#FBF6EF; font-size:11px; text-transform:uppercase;
@@ -2325,6 +2328,11 @@ function renderComisiones(misRegs, VENDEDORES){
         <td><span class="badge ${r.listo ? "listo-si" : "listo-no"}">${r.listo ? "Listo" : "Pendiente"}</span></td>
         <td>
           <div class="listo-check">
+            <input type="checkbox" data-porsalir-comision="${r.id}" ${r.porSalir ? "checked" : ""} title="Marcar como por salir">
+          </div>
+        </td>
+        <td>
+          <div class="listo-check">
             <input type="checkbox" data-entregado-comision="${r.id}" ${r.entregado ? "checked" : ""} title="Marcar como entregado">
           </div>
         </td>
@@ -2350,6 +2358,7 @@ function renderComisiones(misRegs, VENDEDORES){
             <th>Monto</th>
             <th>Comisión (${pct}%)</th>
             <th>Listo</th>
+            <th>Por Salir</th>
             <th>Entregado</th>
             <th>Pagado</th>
           </tr>
@@ -2360,13 +2369,16 @@ function renderComisiones(misRegs, VENDEDORES){
             <td colspan="4" class="total-label">Total (${regs.length} venta${regs.length===1?"":"s"})</td>
             <td class="num">${fmtMoney(totalMonto)}</td>
             <td class="num">${fmtMoney(totalComision)}</td>
-            <td colspan="3"></td>
+            <td colspan="4"></td>
           </tr>
         </tfoot>
       </table>
     </div>
   `;
 
+  wrap.querySelectorAll("[data-porsalir-comision]").forEach(chk=>{
+    chk.addEventListener("change", ()=> togglePorSalir(chk.dataset.porsalirComision, chk.checked));
+  });
   wrap.querySelectorAll("[data-entregado-comision]").forEach(chk=>{
     chk.addEventListener("change", ()=> toggleEntregado(chk.dataset.entregadoComision, chk.checked));
   });
