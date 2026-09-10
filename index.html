@@ -951,6 +951,10 @@
           <input type="number" id="fComisionPct" value="4" min="0" step="0.5">
         </div>
         <button class="btn btn-ghost" id="btnComisionLimpiar" type="button">Ver todo</button>
+        <button class="btn-export btn-export-inline" id="btnExportExcelComisiones" type="button">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Descargar Excel
+        </button>
       </div>
       <div id="comisionResumen"></div>
     </div>
@@ -3551,6 +3555,149 @@ if($("btnExportExcelEncargado")) $("btnExportExcelEncargado").addEventListener("
 $("btnExportExcelTaller").addEventListener("click", ()=> exportToExcel("taller"));
 $("btnExportExcelDespacho").addEventListener("click", ()=> exportToExcel("despacho"));
 $("btnImprimirEncargado").addEventListener("click", printTablaEncargado);
+
+// ---------- Exportar Excel: tabla de Comisiones del Administrador (mismos filtros en pantalla) ----------
+async function exportComisionesExcel(){
+  if(typeof ExcelJS === "undefined"){
+    showToast("No se pudo cargar el módulo de Excel. Revisa tu conexión a internet.");
+    return;
+  }
+
+  const selVendedor = $("fComisionVendedor").value;
+  const desde = $("fComisionDesde").value;
+  const hasta = $("fComisionHasta").value;
+  const pct = Number($("fComisionPct").value) || 0;
+
+  let regs = misRegistros();
+  if(desde) regs = regs.filter(r => r.fecha && r.fecha >= desde);
+  if(hasta) regs = regs.filter(r => r.fecha && r.fecha <= hasta);
+  if(selVendedor) regs = regs.filter(r => (r.vendedor||"").trim().toLowerCase() === selVendedor.toLowerCase());
+  regs = regs.filter(r => !r.anulado);
+  regs = regs.slice().sort((a,b)=> (b.fecha||"").localeCompare(a.fecha||"") || (b.codigo||"").localeCompare(a.codigo||""));
+
+  if(!regs.length){
+    showToast("No hay registros para exportar con los filtros actuales.");
+    return;
+  }
+
+  const columnas = [
+    { header: "Código",          key: "codigo",    width: 14 },
+    { header: "Cliente",         key: "cliente",   width: 26 },
+    { header: "Vendedor",        key: "vendedor",  width: 14 },
+    { header: "Fecha",           key: "fecha",     width: 13 },
+    { header: "Monto",           key: "monto",     width: 12 },
+    { header: `Comisión (${pct}%)`, key: "comision", width: 14 },
+    { header: "Listo",           key: "listo",     width: 12 },
+    { header: "Por Salir",       key: "porSalir",  width: 12 },
+    { header: "Entregado",       key: "entregado", width: 13 },
+    { header: "Pagado",          key: "pagado",    width: 12 },
+  ];
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Sistema de Registro de Puertas";
+  wb.created = new Date();
+  const ws = wb.addWorksheet("Comisiones", {
+    views: [{ state: "frozen", ySplit: 1 }]
+  });
+  ws.columns = columnas;
+
+  let totalMonto = 0, totalComision = 0;
+  regs.forEach(r=>{
+    const monto = Number(r.precio) || 0;
+    const comision = monto * pct / 100;
+    totalMonto += monto; totalComision += comision;
+    ws.addRow({
+      codigo: r.codigo || "",
+      cliente: r.cliente || "",
+      vendedor: r.vendedor || "",
+      fecha: fmtFecha(r.fecha),
+      monto: monto,
+      comision: comision,
+      listo: r.listo ? "Listo" : "Pendiente",
+      porSalir: r.porSalir ? "Sí" : "No",
+      entregado: r.entregado ? "Sí" : "No",
+      pagado: r.comisionPagada ? "Sí" : "No",
+    });
+  });
+
+  // ---- Fila de totales ----
+  const totalRow = ws.addRow({
+    codigo: `Total (${regs.length} venta${regs.length===1?"":"s"})`,
+    monto: totalMonto,
+    comision: totalComision,
+  });
+  ws.mergeCells(totalRow.number, 1, totalRow.number, 4);
+  totalRow.font = { bold: true };
+
+  // ---- Encabezado bonito (mismo estilo que el resto de exportaciones) ----
+  const headerRow = ws.getRow(1);
+  headerRow.height = 26;
+  headerRow.eachCell((cell) => {
+    cell.font = { name: "Calibri", bold: true, size: 11.5, color: { argb: "FFFBF6EF" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF9A4E17" } };
+    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+    cell.border = {
+      top: { style: "thin", color: { argb: "FF6B4423" } },
+      bottom: { style: "thin", color: { argb: "FF6B4423" } },
+      left: { style: "thin", color: { argb: "FF6B4423" } },
+      right: { style: "thin", color: { argb: "FF6B4423" } },
+    };
+  });
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columnas.length } };
+
+  const montoColIdx = columnas.findIndex(c => c.key === "monto") + 1;
+  const comisionColIdx = columnas.findIndex(c => c.key === "comision") + 1;
+  const listoColIdx = columnas.findIndex(c => c.key === "listo") + 1;
+  const pagadoColIdx = columnas.findIndex(c => c.key === "pagado") + 1;
+  for(let i = 2; i < ws.rowCount; i++){
+    const row = ws.getRow(i);
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = { bottom: { style: "hair", color: { argb: "FFD8C3A5" } } };
+      cell.alignment = { vertical: "middle" };
+    });
+    if(i % 2 === 0){
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3ECE1" } };
+      });
+    }
+    if(montoColIdx > 0) row.getCell(montoColIdx).numFmt = '"S/" #,##0.00';
+    if(comisionColIdx > 0) row.getCell(comisionColIdx).numFmt = '"S/" #,##0.00';
+    if(listoColIdx > 0){
+      const listoCell = row.getCell(listoColIdx);
+      listoCell.font = { color: { argb: listoCell.value === "Listo" ? "FF2B5F7A" : "FF6B4423" }, bold: true };
+    }
+    if(pagadoColIdx > 0){
+      const pagadoCell = row.getCell(pagadoColIdx);
+      if(pagadoCell.value === "Sí") pagadoCell.font = { color: { argb: "FF3D6B3D" }, bold: true };
+    }
+  }
+  // Formato numérico también en la fila de totales
+  if(montoColIdx > 0) totalRow.getCell(montoColIdx).numFmt = '"S/" #,##0.00';
+  if(comisionColIdx > 0) totalRow.getCell(comisionColIdx).numFmt = '"S/" #,##0.00';
+
+  const fechaHoy = new Date().toISOString().slice(0,10);
+  let sufijoFecha = "";
+  if(desde || hasta){
+    sufijoFecha = (desde && hasta && desde === hasta) ? `_${desde}` : `_${desde || "inicio"}_a_${hasta || "hoy"}`;
+  }
+  const sufijoVendedor = selVendedor ? `_${selVendedor}` : "";
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = sufijoFecha
+    ? `comisiones${sufijoVendedor}${sufijoFecha}.xlsx`
+    : `comisiones${sufijoVendedor}_${fechaHoy}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast("Excel de comisiones descargado ✓");
+}
+if($("btnExportExcelComisiones")) $("btnExportExcelComisiones").addEventListener("click", exportComisionesExcel);
 // ===================== FIN EXPORTAR A EXCEL =====================
 
 
@@ -3624,8 +3771,9 @@ function showApp(username){
   // Administrador, Encargado y Despacho tienen sus propias tablas y solo usan el botón de Descargar Excel aquí.
   if(mainTableWrap) mainTableWrap.style.display = esVendedor() ? "" : "none";
   if(despachoTableWrap) despachoTableWrap.style.display = soloDespacho ? "" : "none";
-  // Para Encargado ocultamos toda la fila de filtros/exportar del Dashboard (queda solo su panel).
-  if(filtersRow) filtersRow.style.display = soloEncargadoDash ? "none" : "";
+  // Para Encargado y Administrador ocultamos toda la fila de filtros/exportar del Dashboard
+  // (el Administrador ya tiene su propio botón de Descargar Excel en el panel de Comisiones).
+  if(filtersRow) filtersRow.style.display = (soloEncargadoDash || currentUser === "ADMINISTRADOR") ? "none" : "";
 
   loadData();
   if(soloDespacho){
