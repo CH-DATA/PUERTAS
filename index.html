@@ -912,7 +912,7 @@
       <div class="stat-seg-icon" style="--seg-c:var(--rust-500);">💰</div>
       <div class="stat-seg-text">
         <div class="stat-seg-num" id="statMontoTotal" style="color:var(--rust-500);">S/ 0.00</div>
-        <div class="stat-seg-lbl">Monto total (Angel, Liz, Lesly, Judith)</div>
+        <div class="stat-seg-lbl">Monto total (Angel, Liz, Lesly, Judith, Fernando)</div>
       </div>
     </div>
     <div class="stat-seg" id="statMontoNetoWrap" style="display:none;">
@@ -936,6 +936,7 @@
             <option value="Liz">Liz</option>
             <option value="Lesly">Lesly</option>
             <option value="Judith">Judith</option>
+            <option value="Fernando">Fernando</option>
           </select>
         </div>
         <div class="field">
@@ -1082,7 +1083,7 @@
       <label>Vendedor</label>
       <select id="fVendedor">
         <option value="">Todos</option>
-        <option>Angel</option><option>Lesly</option><option>Liz</option><option>Judith</option><option>Otro</option>
+        <option>Angel</option><option>Lesly</option><option>Liz</option><option>Judith</option><option>Fernando</option><option>Otro</option>
       </select>
     </div>
     <div class="field">
@@ -1243,6 +1244,7 @@
             <option value="Liz">Liz</option>
             <option value="Lesly">Lesly</option>
             <option value="Judith">Judith</option>
+            <option value="Fernando">Fernando</option>
           </select>
         </div>
         <div class="field">
@@ -1372,7 +1374,7 @@
           <label>Vendedor</label>
           <select id="iVendedor">
             <option value="">Selecciona...</option>
-            <option>Angel</option><option>Lesly</option><option>Liz</option><option>Judith</option><option>Otro</option>
+            <option>Angel</option><option>Lesly</option><option>Liz</option><option>Judith</option><option>Fernando</option><option>Otro</option>
           </select>
         </div>
         <div class="field">
@@ -1627,7 +1629,7 @@ function esAdministrador(){ return currentUser === "ADMINISTRADOR"; }
 function esEncargado(){ return currentUser === "ENCARGADO"; }
 function isDespacho(){ return currentUser === "DESPACHO"; }
 // Vendedores habilitados para registrar ventas de combos.
-function esVendedor(){ return currentUser === "ANGEL" || currentUser === "LIZ" || currentUser === "LESLY" || currentUser === "JUDITH"; }
+function esVendedor(){ return currentUser === "ANGEL" || currentUser === "LIZ" || currentUser === "LESLY" || currentUser === "JUDITH" || currentUser === "FERNANDO"; }
 // Roles con visión total de los registros (no solo los propios): admin, encargado y despacho.
 function veTodosLosRegistros(){ return isAdmin() || isDespacho(); }
 // Roles que pueden marcar/desmarcar el check de "Listo para despacho".
@@ -2190,7 +2192,7 @@ async function toggleComisionPagada(id, checked){
   if(!rec) return;
   rec.comisionPagada = checked;
   await saveData();
-  renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith"]);
+  renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith","Fernando"]);
   showToast(checked ? `Comisión marcada como PAGADA ✓ ${rec.codigo || ""}` : `Comisión desmarcada ${rec.codigo || ""}`);
 }
 
@@ -2244,7 +2246,7 @@ function renderAdminVendorSummary(misRegs){
   if(comisiones) comisiones.style.display = "none";
   if(encargadoDash) encargadoDash.style.display = "none";
 
-  const VENDEDORES = ["Angel", "Liz", "Lesly", "Judith"];
+  const VENDEDORES = ["Angel", "Liz", "Lesly", "Judith", "Fernando"];
 
   if(esAdministrador()){
     insights.style.display = "block";
@@ -2443,7 +2445,7 @@ function renderDailyVendorProgress(misRegs, VENDEDORES){
 }
 
 // ---------- Dashboard de Encargado: gráfico de barras por día + tabla resumen imprimible ----------
-const VENDOR_COLORS = { Angel: "var(--rust-500)", Liz: "var(--oak-500)", Lesly: "var(--info-500)", Judith: "var(--gold-500)" };
+const VENDOR_COLORS = { Angel: "var(--rust-500)", Liz: "var(--oak-500)", Lesly: "var(--info-500)", Judith: "var(--gold-500)", Fernando: "var(--danger-600)" };
 
 function medidasTexto(r){
   return `${r.vanoAncho || 0} x ${r.vanoAlto || 0} cm`;
@@ -2741,7 +2743,7 @@ async function eliminarVentaCombo(ventaId){
   if(!confirm("¿Eliminar esta venta de accesorio? Esta acción no se puede deshacer.")) return;
   ventasCombos = ventasCombos.filter(v => v.id !== ventaId);
   renderVentasHoy();
-  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly", "Judith"]);
+  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly", "Judith", "Fernando"]);
   await saveVentasCombos();
   showToast("Venta eliminada");
 }
@@ -2753,7 +2755,7 @@ async function toggleAnularVentaCombo(ventaId){
   if(nuevoEstado && !confirm(`¿Anular la venta de ${v.comboNombre || ""}?`)) return;
   v.anulado = nuevoEstado;
   renderVentasHoy();
-  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly", "Judith"]);
+  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly", "Judith", "Fernando"]);
   await saveVentasCombos();
   showToast(nuevoEstado ? "Venta anulada" : "Venta reactivada");
 }
@@ -2818,7 +2820,7 @@ async function guardarEdicionVentaCombo(){
 
   closeEditVentaCombo();
   renderVentasHoy();
-  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly", "Judith"]);
+  if(isAdmin()) renderVentasCombosDashboard(["Angel", "Liz", "Lesly", "Judith", "Fernando"]);
   await saveVentasCombos();
   showToast("Venta actualizada");
 }
@@ -2889,7 +2891,7 @@ function filtrarPorFechaCombo(){
 // Refresca solo el dashboard de venta (hoja independiente para Encargado / Administrador).
 function refreshVentaDashboard(){
   if(!isAdmin()) return;
-  renderVentasCombosDashboard(["Angel", "Liz", "Lesly", "Judith"]);
+  renderVentasCombosDashboard(["Angel", "Liz", "Lesly", "Judith", "Fernando"]);
 }
 
 function renderVentasCombosDashboard(VENDEDORES){
@@ -3280,16 +3282,16 @@ function renderDonutChartPagina(byPagina){
 }
 
 
-$("fComisionVendedor").addEventListener("change", ()=> renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith"]));
-$("fComisionDesde").addEventListener("change", ()=> renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith"]));
-$("fComisionHasta").addEventListener("change", ()=> renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith"]));
+$("fComisionVendedor").addEventListener("change", ()=> renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith","Fernando"]));
+$("fComisionDesde").addEventListener("change", ()=> renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith","Fernando"]));
+$("fComisionHasta").addEventListener("change", ()=> renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith","Fernando"]));
 $("fComisionPct").addEventListener("input", ()=>{
-  renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith"]);
+  renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith","Fernando"]);
   // Recalcula también el KPI "Monto menos comisión" con el nuevo %.
   const montoTotalEl = $("statMontoTotal");
   const montoNetoEl = $("statMontoNeto");
   if(montoTotalEl && montoNetoEl){
-    const montoTotalTres = ["Angel","Liz","Lesly","Judith"].reduce((s,v)=>
+    const montoTotalTres = ["Angel","Liz","Lesly","Judith","Fernando"].reduce((s,v)=>
       s + misRegistros().filter(r => (r.vendedor||"").trim() === v).reduce((s2,r)=> s2 + (Number(r.precio)||0), 0), 0);
     const pct = Number($("fComisionPct").value) || 0;
     montoNetoEl.textContent = fmtMoney(montoTotalTres - (montoTotalTres * pct / 100));
@@ -3308,7 +3310,7 @@ $("btnComisionLimpiar").addEventListener("click", ()=>{
   $("fComisionVendedor").value = "";
   $("fComisionDesde").value = "";
   $("fComisionHasta").value = "";
-  renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith"]);
+  renderComisiones(misRegistros(), ["Angel","Liz","Lesly","Judith","Fernando"]);
 });
 
 $("navDashboard").addEventListener("click", ()=> showView("dashboard"));
@@ -3707,6 +3709,7 @@ const USERS = {
   "LIZ": "LIZ2026",
   "LESLY": "LESLY2026",
   "JUDITH": "JUDITH2026",
+  "FERNANDO": "FERNANDO2026",
   "ADMINISTRADOR": "ADMINISTRADOR",
   "DESPACHO": "DESPACHO2026",
   "ENCARGADO": "ENCARGADO2026"
