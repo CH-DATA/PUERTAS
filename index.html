@@ -1161,6 +1161,7 @@
           <tr>
             <th>Fecha</th>
             <th>Código</th>
+            <th>Vendedor</th>
             <th>Cliente</th>
             <th>Distrito</th>
             <th>Vano Ancho (mm)</th>
@@ -1170,6 +1171,7 @@
             <th>Modelo</th>
             <th>Tipo de apertura</th>
             <th>Perforación</th>
+            <th>Acabado</th>
             <th>Observaciones</th>
             <th>Listo</th>
           </tr>
@@ -3095,6 +3097,7 @@ function render(){
       tr.innerHTML = `
         <td>${fmtFecha(r.fecha)}</td>
         <td>${r.codigo||""}</td>
+        <td>${r.vendedor||"—"}</td>
         <td class="wrap">${r.cliente||"—"}</td>
         <td>${r.distrito||"—"}</td>
         <td class="num">${r.vanoAncho ? (r.vanoAncho*10) : 0}</td>
@@ -3104,6 +3107,7 @@ function render(){
         <td>${r.modelo||"—"}</td>
         <td>${textoTipoAperturaAlto(r) || "—"}</td>
         <td>${r.perforacion||"—"}</td>
+        <td>${r.acabado||"—"}</td>
         <td class="wrap">${r.observaciones||"—"}</td>
         <td>
           <div class="listo-check">
@@ -3400,6 +3404,7 @@ async function exportToExcel(modo = "completo"){
   // Para Despacho: solo lo que necesita para preparar el pedido (código, medidas, distrito, modelo y observaciones).
   const columnasDespacho = [
     { header: "Código",          key: "codigo",         width: 14 },
+    { header: "Vendedor",        key: "vendedor",       width: 16 },
     { header: "Cliente",         key: "cliente",        width: 24 },
     { header: "Vano Ancho (cm)", key: "vanoAncho",      width: 15 },
     { header: "Vano Alto (cm)",  key: "vanoAlto",       width: 14 },
@@ -3408,6 +3413,7 @@ async function exportToExcel(modo = "completo"){
     { header: "Distrito",        key: "distrito",       width: 16 },
     { header: "Modelo",          key: "modelo",         width: 16 },
     { header: "Perforación",     key: "perforacion",    width: 16 },
+    { header: "Acabado",         key: "acabado",        width: 16 },
     { header: "Observaciones",   key: "observaciones",  width: 30 },
   ];
 
