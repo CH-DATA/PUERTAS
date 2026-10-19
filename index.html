@@ -1153,7 +1153,7 @@
     </div>
   </div>
 
-  <!-- ===== Vista simplificada para Despacho: código, cliente, medidas, distrito, modelo, perforación, observaciones y "Listo" al final ===== -->
+  <!-- ===== Vista simplificada para Despacho: código, cliente, medidas, distrito, precio, modelo, perforación, observaciones y "Listo" al final ===== -->
   <div class="table-wrap" id="despachoTableWrap" style="display:none;">
     <div class="table-scroll">
       <table class="table-despacho">
@@ -1164,6 +1164,7 @@
             <th>Vendedor</th>
             <th>Cliente</th>
             <th>Distrito</th>
+            <th>Precio (S/)</th>
             <th>Vano Ancho (mm)</th>
             <th>Vano Alto (mm)</th>
             <th>Hoja Ancho (mm)</th>
@@ -3100,6 +3101,7 @@ function render(){
         <td>${r.vendedor||"—"}</td>
         <td class="wrap">${r.cliente||"—"}</td>
         <td>${r.distrito||"—"}</td>
+        <td class="num">${fmtMoney(r.precio)}</td>
         <td class="num">${r.vanoAncho ? (r.vanoAncho*10) : 0}</td>
         <td class="num">${r.vanoAlto ? (r.vanoAlto*10) : 0}</td>
         <td class="num">${r.hojaAncho||0}</td>
@@ -3401,7 +3403,7 @@ async function exportToExcel(modo = "completo"){
     { header: "Observaciones",   key: "observaciones",  width: 30 },
   ];
 
-  // Para Despacho: solo lo que necesita para preparar el pedido (código, medidas, distrito, modelo y observaciones).
+  // Para Despacho: solo lo que necesita para preparar el pedido (código, medidas, distrito, precio, modelo y observaciones).
   const columnasDespacho = [
     { header: "Código",          key: "codigo",         width: 14 },
     { header: "Vendedor",        key: "vendedor",       width: 16 },
@@ -3411,6 +3413,7 @@ async function exportToExcel(modo = "completo"){
     { header: "Hoja Ancho (mm)", key: "hojaAncho",      width: 15 },
     { header: "Hoja Alto (mm)",  key: "hojaAlto",       width: 14 },
     { header: "Distrito",        key: "distrito",       width: 16 },
+    { header: "Precio (S/)",     key: "precio",         width: 13 },
     { header: "Modelo",          key: "modelo",         width: 16 },
     { header: "Perforación",     key: "perforacion",    width: 16 },
     { header: "Acabado",         key: "acabado",        width: 16 },
