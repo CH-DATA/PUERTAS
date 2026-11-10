@@ -114,49 +114,6 @@
     padding:5px 10px; border-radius:999px; letter-spacing:.3px;
   }
   #appShellWrap{ display:none; }
-  #bannerBloqueo{ display:none; position:sticky; top:0; z-index:9000; background:#A3372B; color:#fff;
-    text-align:center; padding:10px 16px; font-size:13px; font-weight:700; letter-spacing:.2px; }
-  #bannerBloqueo.show{ display:block; }
-
-  /* ---------- Aviso del sistema (mantenimiento) ---------- */
-  #avisoOverlay{
-    position:fixed; inset:0; z-index:10000; display:none;
-    align-items:center; justify-content:center; padding:20px;
-    background:rgba(20,48,31,0.6);
-  }
-  #avisoOverlay.open{ display:flex; }
-  .aviso-box{
-    background:#fff; width:min(520px, 100%); border-radius:12px;
-    box-shadow:0 20px 50px rgba(0,0,0,0.35); overflow:hidden;
-    font-family:var(--font-body); animation: loginRise .35s ease;
-  }
-  .aviso-head{
-    display:flex; align-items:center; justify-content:center; gap:16px;
-    padding:22px 24px 16px; border-bottom:1px solid #E2E5E8; position:relative;
-  }
-  .aviso-head h3{ margin:0; font-size:22px; font-weight:800; color:#1b1f23; letter-spacing:.3px; }
-  .aviso-x{
-    position:absolute; top:10px; right:14px; background:transparent; border:none;
-    font-size:22px; color:#7a828a; cursor:pointer; line-height:1;
-  }
-  .aviso-body{ padding:20px 28px 8px; text-align:center; }
-  .aviso-body p{ margin:0 0 16px; font-size:17px; line-height:1.45; color:#1b1f23; }
-  .aviso-estado{
-    background:#FFC845; color:#1b1f23; font-weight:800; font-size:17px;
-    padding:12px; border-radius:8px; margin-bottom:12px;
-  }
-  .aviso-plazo{
-    background:#FBEDEA; border:1.5px solid #E6BAB0; color:var(--danger-600);
-    font-weight:700; font-size:15px; padding:11px 12px; border-radius:8px; line-height:1.4;
-  }
-  .aviso-plazo b{ font-size:16px; }
-  .aviso-foot{ padding:16px 28px 24px; display:flex; justify-content:center; }
-  .aviso-btn{
-    background:#1C6FD6; color:#fff; border:none; border-radius:8px; cursor:pointer;
-    padding:12px 34px; font-size:16px; font-weight:700; font-family:var(--font-body);
-    display:flex; align-items:center; gap:8px;
-  }
-  .aviso-btn:hover{ filter:brightness(1.08); }
   .user-badge{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     background: rgba(251,246,239,0.1); border:1px solid rgba(251,246,239,0.18);
@@ -878,30 +835,7 @@
   </div>
 </div>
 
-<div id="avisoOverlay">
-  <div class="aviso-box" role="alertdialog" aria-labelledby="avisoTitulo">
-    <div class="aviso-head">
-      <svg width="64" height="58" viewBox="0 0 64 58" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 3 2 55h60L32 3Z" fill="#FFC107" stroke="#FFC107" stroke-width="4" stroke-linejoin="round"/>
-        <rect x="29" y="20" width="6" height="19" rx="2" fill="#1b1f23"/>
-        <circle cx="32" cy="46" r="3.5" fill="#1b1f23"/>
-      </svg>
-      <h3 id="avisoTitulo">AVISO DEL SISTEMA</h3>
-      <button class="aviso-x" id="avisoCerrarX" type="button" title="Cerrar">✕</button>
-    </div>
-    <div class="aviso-body">
-      <p>El sistema requiere mantenimiento técnico. Se recomienda realizar las acciones de mantenimiento correspondientes.</p>
-      <div class="aviso-estado">Pendiente de mantenimiento</div>
-      <div class="aviso-plazo">⏰ Plazo máximo: <b>3 días</b><br>Fecha límite: <b>viernes 6 de noviembre de 2026</b></div>
-    </div>
-    <div class="aviso-foot">
-      <button class="aviso-btn" id="avisoAceptar" type="button">✓ Aceptar</button>
-    </div>
-  </div>
-</div>
-
 <div id="appShellWrap">
-<div id="bannerBloqueo" role="alert">⛔ Plazo de mantenimiento vencido (06/11/2026). Modo solo lectura activo, no se guarda el registro.</div>
 <div class="app-shell">
 
   <aside class="sidebar">
@@ -1606,32 +1540,6 @@ let ventasCombos = []; // ventas de combos de accesorios (chapas + bisagras)
 let editingId = null;
 let currentUser = null;
 
-// ===================== BLOQUEO DE GUARDADO (modo solo lectura) =====================
-const MSG_BLOQUEO = "Plazo de mantenimiento vencido (06/11/2026). Modo solo lectura activo, no se guarda el registro.";
-// Por defecto el sistema esta bloqueado. Para reactivarlo sin tocar el HTML:
-// Firestore > coleccion puertas_data > documento config > campo bloqueado (boolean) = false
-let sistemaBloqueado = true;
-const CONFIG_DOC = db.collection("puertas_data").doc("config");
-
-async function cargarEstadoBloqueo(){
-  try{
-    const snap = await CONFIG_DOC.get();
-    if(snap.exists && typeof snap.data().bloqueado === "boolean"){
-      sistemaBloqueado = snap.data().bloqueado;
-    }
-  }catch(e){ /* sin conexion: se mantiene el estado por defecto (bloqueado) */ }
-  const banner = document.getElementById("bannerBloqueo");
-  if(banner) banner.classList.toggle("show", sistemaBloqueado);
-}
-
-// Devuelve true (y avisa) si el sistema esta en modo solo lectura.
-function bloqueado(){
-  if(!sistemaBloqueado) return false;
-  showToast("⛔ " + MSG_BLOQUEO, 5000);
-  return true;
-}
-// ===================== FIN BLOQUEO DE GUARDADO =====================
-
 // ---------- Combos de accesorios (chapas + bisagras) para venta rápida ----------
 const COMBOS = [
   { id:"combo1", nombre:"Combo Básico", detalle:"Chapa perilla plateada Forperu + Bisagras mariposa Forperu", precio:35,  tipo:"perilla",  tono:"plateado" },
@@ -1753,12 +1661,12 @@ function badgeClass(pagina){
   if(pagina === "Venecia Puertas") return "venecia";
   return "mass";
 }
-function showToast(msg, ms){
+function showToast(msg){
   const t = $("toast");
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(showToast._t);
-  showToast._t = setTimeout(()=> t.classList.remove("show"), ms || 2200);
+  showToast._t = setTimeout(()=> t.classList.remove("show"), 2200);
 }
 
 // Genera el siguiente código incrementando en 1 la parte numérica final.
@@ -1788,7 +1696,6 @@ function codigoDisponible(codigoDeseado, excludeId){
 }
 
 async function loadData(){
-  await cargarEstadoBloqueo();
   try{
     const snap = await REG_DOC.get();
     const data = snap.exists ? snap.data() : {};
@@ -1806,7 +1713,6 @@ async function loadData(){
 }
 
 async function saveVentasCombos(){
-  if(sistemaBloqueado) return;
   try{
     await REG_DOC.set({ ventasCombos }, { merge: true });
   }catch(e){
@@ -1815,7 +1721,6 @@ async function saveVentasCombos(){
 }
 
 async function saveData(){
-  if(sistemaBloqueado) return;
   try{
     await REG_DOC.set({ registros }, { merge: true });
   }catch(e){
@@ -1825,7 +1730,6 @@ async function saveData(){
 
 // Marca/desmarca el pago de comisión de un vendedor para el periodo (desde-hasta) seleccionado.
 async function guardarPagoComision(key, pagado){
-  if(sistemaBloqueado) return;
   pagosComisiones[key] = pagado;
   try{
     await REG_DOC.set({ pagosComisiones }, { merge: true });
@@ -2038,7 +1942,6 @@ function textoTipoAperturaAlto(r){
 }
 
 async function saveRecord(){
-  if(bloqueado()) return;
   const vendedor = isAdmin() ? $("iVendedor").value : nombreVendedorActual();
   const pagina = $("iPagina").value;
   if(!vendedor){ showToast("Selecciona un vendedor."); return; }
@@ -2249,7 +2152,6 @@ function printRegistro(){
 // ===================== FIN IMPRIMIR REGISTRO =====================
 
 async function toggleListo(id, checked){
-  if(bloqueado()){ render(); return; }
   if(!puedeEditarListo()) return;
   // Refresca antes de guardar, para no pisar cambios de otros usuarios.
   await refrescarRegistros();
@@ -2263,7 +2165,6 @@ async function toggleListo(id, checked){
 }
 
 async function toggleEntregado(id, checked){
-  if(bloqueado()){ render(); return; }
   // Refresca antes de guardar, para no pisar cambios de otros usuarios.
   await refrescarRegistros();
   const rec = registros.find(r => r.id === id);
@@ -2276,7 +2177,6 @@ async function toggleEntregado(id, checked){
 }
 
 async function togglePorSalir(id, checked){
-  if(bloqueado()){ render(); return; }
   // Refresca antes de guardar, para no pisar cambios de otros usuarios.
   await refrescarRegistros();
   const rec = registros.find(r => r.id === id);
@@ -2290,7 +2190,6 @@ async function togglePorSalir(id, checked){
 
 // Marca/desmarca el pago de comisión de UN pedido puntual (queda guardado en el propio registro).
 async function toggleComisionPagada(id, checked){
-  if(bloqueado()){ render(); return; }
   await refrescarRegistros();
   const rec = registros.find(r => r.id === id);
   if(!rec) return;
@@ -2301,7 +2200,6 @@ async function toggleComisionPagada(id, checked){
 }
 
 async function deleteRecord(id){
-  if(bloqueado()) return;
   if(!confirm("¿Eliminar este registro? Esta acción no se puede deshacer.")) return;
   registros = registros.filter(r => r.id !== id);
   await saveData();
@@ -2310,7 +2208,6 @@ async function deleteRecord(id){
 }
 
 async function toggleAnular(id){
-  if(bloqueado()) return;
   await refrescarRegistros();
   const rec = registros.find(r => r.id === id);
   if(!rec) return;
@@ -2812,7 +2709,6 @@ function renderComboGrid(){
 
 // Registra una venta de combo para el vendedor actual y la guarda de inmediato.
 async function registrarVentaCombo(comboId){
-  if(bloqueado()) return;
   const combo = COMBOS.find(c => c.id === comboId);
   if(!combo || !esVendedor()) return;
   const clienteInput = $("iComboCliente");
@@ -2847,7 +2743,6 @@ async function registrarVentaCombo(comboId){
 }
 
 async function eliminarVentaCombo(ventaId){
-  if(bloqueado()) return;
   if(!confirm("¿Eliminar esta venta de accesorio? Esta acción no se puede deshacer.")) return;
   ventasCombos = ventasCombos.filter(v => v.id !== ventaId);
   renderVentasHoy();
@@ -2857,7 +2752,6 @@ async function eliminarVentaCombo(ventaId){
 }
 
 async function toggleAnularVentaCombo(ventaId){
-  if(bloqueado()) return;
   const v = ventasCombos.find(x => x.id === ventaId);
   if(!v) return;
   const nuevoEstado = !v.anulado;
@@ -2905,7 +2799,6 @@ function actualizarPreviewEdicionVenta(){
 }
 
 async function guardarEdicionVentaCombo(){
-  if(bloqueado()) return;
   const v = ventasCombos.find(x => x.id === editingVentaComboId);
   if(!v) return;
   const cliente = $("eVentaCliente") ? $("eVentaCliente").value.trim() : "";
@@ -3894,8 +3787,6 @@ function showApp(username){
   // (el Administrador ya tiene su propio botón de Descargar Excel en el panel de Comisiones).
   if(filtersRow) filtersRow.style.display = (soloEncargadoDash || currentUser === "ADMINISTRADOR") ? "none" : "";
 
-  // Aviso del sistema: se muestra al centro a todos los usuarios cada vez que ingresan.
-
   loadData();
   if(soloDespacho){
     showView("dashboard");
@@ -3904,17 +3795,6 @@ function showApp(username){
     openModal(null);
   }
 }
-
-function mostrarAvisoSistema(){
-  const ov = $("avisoOverlay");
-  if(ov) ov.classList.add("open");
-}
-function cerrarAvisoSistema(){
-  const ov = $("avisoOverlay");
-  if(ov) ov.classList.remove("open");
-}
-$("avisoAceptar").addEventListener("click", cerrarAvisoSistema);
-$("avisoCerrarX").addEventListener("click", cerrarAvisoSistema);
 
 // Despacho ve los registros en vivo (sin recargar) apenas alguien guarda uno nuevo.
 let unsubscribeLive = null;
